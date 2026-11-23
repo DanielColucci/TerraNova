@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#0b0b0c">
+    <title>Pago · Hotel TerraNova</title>
+    <link rel="stylesheet" href="/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/css/fonts.css">
+    <link rel="stylesheet" href="/css/icons.css">
+    <link rel="stylesheet" href="/css/terranova.css">
+</head>
+<body class="pagina-huesped pagina-pago">
+<nav class="landing-nav">
+    <div class="container d-flex flex-nowrap align-items-center justify-content-between py-2 gap-2">
+        <a href="/inicio" class="d-flex align-items-center gap-2 text-decoration-none text-dark fw-bold">
+            <span class="brand-logo" style="width:36px;height:36px">TN</span>TerraNova
+        </a>
+        <a href="/mis-reservaciones" class="btn btn-soft btn-sm" aria-label="Mis reservaciones"><i class="bi bi-calendar-check me-1"></i><span class="nav-etiqueta">Mis reservaciones</span></a>
+    </div>
+</nav>
+
+<main class="container pago-wrap">
+    <div id="flashHost"></div>
+    <div id="pagoHost"><div class="text-center py-5 text-muted">Cargando reservación…</div></div>
+</main>
+
+<script src="/js/bootstrap.bundle.min.js"></script>
+<script src="/js/config.js"></script>
+<script src="/js/api.js"></script>
+<script src="/js/terranova.js"></script>
+<script src="/js/chat-widget.js"></script>
+<script src="/js/layout.js"></script>
+<script src="/js/pago.js"></script>
+<script>
+(function () {
+    var folio = TN.qs('folio');
+    if (!folio) {
+        var m = /\/pago\/(\d+)/.exec(location.pathname);
+        if (m) { folio = m[1]; }
+    }
+
+    TNLayout.init({ sinSidebar: true, roles: ['USUARIO', 'ADMINISTRADOR'] }).then(function (user) {
+        if (!folio) {
+            TN.flash('aviso', 'No se especificó el folio de la reservación.');
+            location.href = '/mis-reservaciones';
+            return;
+        }
+        return TN.get('/api/pago/' + encodeURIComponent(folio)).then(function (d) {
+            var r = d.reservacion, h = r.habitacion || {}, pago = d.pago, pend = d.pendiente;
+            var titulo = pend ? 'Completa tu pago' : (pago ? 'Pago realizado' : 'Reservación no disponible');
+            var html = '<div class="mb-4 anim-in"><div class="crumbs">Reservación #' + r.idReservacion + '</div>'
+                + '<h1 class="page-title mb-1">' + titulo + '</h1></div>'
+                + '<div class="row g-4">'
+                + '<div class="col-lg-5 order-lg-2">'
+                + '  <div class="card-tn pago-resumen"><div class="card-body-tn">'
+                + '    <div class="pago-hotel">' + TN.esc(h.hotelNombre) + '</div>'
+                + '    <div class="small text-muted mb-3">Hab. ' + TN.esc(h.numero) + ' · ' + TN.esc(h.tipoNombre) + '</div>'
+                + '    <div class="folio-row"><span>Entrada</span><strong>' + TN.fecha(r.fechaEntrada) + '</strong></div>'
+                + '    <div class="folio-row"><span>Salida</span><strong>' + TN.fecha(r.fechaSalida) + '</strong></div>'
+                + '    <div class="folio-row"><span>Noches</span><strong>' + r.noches + '</strong></div>'
+                + '    <div class="folio-row"><span>Personas</span><strong>' + r.adultos + ' ad. · ' + r.ninos + ' ni.</strong></div>'
+                + '    <div class="folio-row"><span>Tarifa por noche</span><span class="money">' + TN.money(r.precioNoche) + '</span></div>'
+                + '    <div class="folio-grand mt-3"><span>Total</span><strong>' + TN.money(r.costoTotal) + '</strong></div>'
+                + '  </div></div>';
+            if (pend) {
+                html += '<div class="pago-pruebas mt-3"><div class="fw-semibold mb-2"><i class="bi bi-info-circle me-1"></i>Tarjetas de prueba (pago simulado)</div>'
+                    + '<div class="pago-prueba"><span><code>4242 4242 4242 4242</code> <small class="text-success fw-semibold">aprueba</small></span><button type="button" class="btn btn-soft btn-sm" data-usar-tarjeta="4242 4242 4242 4242">Usar</button></div>'
+                    + '<div class="pago-prueba"><span><code>4000 0000 0000 0002</code> <small class="text-danger fw-semibold">rechaza</small></span><button type="button" class="btn btn-soft btn-sm" data-usar-tarjeta="4000 0000 0000 0002">Usar</button></div>'
+                    + '<div class="small text-muted mt-2">Vencimiento: cualquier fecha futura · CVV: cualquier 3 dígitos.</div></div>';
+            }
+            html += '</div><div class="col-lg-7 order-lg-1">';
+            if (pend) {
+                html += '<div class="card-tn" id="pagoTarjeta"><div class="card-body-tn">'
+                    + '<div class="pago-reloj" id="pagoReloj" role="timer" aria-live="off"><i class="bi bi-hourglass-split me-1"></i>Habitación retenida: <strong id="pagoTiempo">--:--</strong></div>'
+                    + '<form id="formPago" novalidate>'
+                    + '<div class="mb-3"><label class="form-label" for="pgTitular">Titular de la tarjeta</label><input class="form-control" id="pgTitular" maxlength="120" autocomplete="cc-name" placeholder="Como aparece en la tarjeta" required></div>'
+                    + '<div class="mb-3"><label class="form-label" for="pgNumero">Número de tarjeta</label><div class="pago-numero"><input class="form-control" id="pgNumero" inputmode="numeric" autocomplete="cc-number" maxlength="23" placeholder="0000 0000 0000 0000" required><span class="pago-marca" id="pgMarca" aria-hidden="true"><i class="bi bi-credit-card-2-front"></i></span></div></div>'
+                    + '<div class="row g-3"><div class="col-6"><label class="form-label" for="pgVence">Vencimiento</label><input class="form-control" id="pgVence" inputmode="numeric" autocomplete="cc-exp" maxlength="5" placeholder="MM/AA" required></div>'
+                    + '<div class="col-6"><label class="form-label" for="pgCvv">CVV</label><input class="form-control" id="pgCvv" type="password" inputmode="numeric" autocomplete="cc-csc" maxlength="4" placeholder="•••" required></div></div>'
+                    + '<div class="alert flash flash-error d-none mt-3" id="pgError"><i class="bi bi-x-octagon-fill"></i><div></div></div>'
+                    + '<button type="submit" class="btn btn-emerald btn-lg w-100 mt-4" id="pgBoton"><i class="bi bi-lock-fill me-2"></i>Pagar ' + TN.money(r.costoTotal) + '</button>'
+                    + '<div class="small text-muted text-center mt-3"><i class="bi bi-shield-lock me-1"></i>Pago simulado: no se guarda el número completo ni el CVV.</div>'
+                    + '</form></div></div>'
+                    + '<div class="card-tn pago-estado d-none" id="pagoProcesando" aria-live="polite"><div class="card-body-tn text-center py-5"><div class="pago-spinner mb-3"></div><h4 class="fw-bold mb-1">Procesando tu pago…</h4><p class="text-secondary mb-0" id="pagoPaso">Verificando la tarjeta</p></div></div>'
+                    + '<div class="card-tn pago-estado d-none" id="pagoOk"><div class="card-body-tn text-center py-5"><div class="pago-icono ok"><i class="bi bi-check-lg"></i></div><h4 class="fw-bold mb-1">¡Pago aprobado!</h4><p class="text-secondary">Tu reservación está confirmada. Enviamos el recibo a <strong>' + TN.esc(user.correo) + '</strong>.</p><p class="small text-muted">Referencia: <code id="pagoRef">—</code></p><a href="/mis-reservaciones" class="btn btn-tn px-4">Ver mis reservaciones</a></div></div>'
+                    + '<div class="card-tn pago-estado d-none" id="pagoNo"><div class="card-body-tn text-center py-5"><div class="pago-icono no"><i class="bi bi-x-lg"></i></div><h4 class="fw-bold mb-1">Pago rechazado</h4><p class="text-secondary" id="pagoNoTexto">El banco rechazó la tarjeta.</p><a href="/inicio" class="btn btn-tn px-4">Volver al inicio</a></div></div>';
+            } else if (pago) {
+                html += '<div class="card-tn"><div class="card-body-tn text-center py-5"><div class="pago-icono ok"><i class="bi bi-check-lg"></i></div>'
+                    + '<h4 class="fw-bold mb-1">Esta reservación ya está pagada</h4>'
+                    + '<p class="text-secondary mb-1">' + TN.esc(pago.marca || 'Tarjeta') + ' •••• ' + TN.esc(pago.ultimos4) + ' · ' + TN.fechaHora(pago.fecha) + '</p>'
+                    + '<p class="small text-muted">Referencia: <code>' + TN.esc(pago.referencia) + '</code></p>'
+                    + '<a href="/mis-reservaciones" class="btn btn-tn px-4">Ver mis reservaciones</a></div></div>';
+            } else {
+                html += '<div class="card-tn" id="pagoVencida"><div class="card-body-tn text-center py-5"><div class="pago-icono no"><i class="bi bi-clock-history"></i></div>'
+                    + '<h4 class="fw-bold mb-1">Ya no se puede pagar esta reservación</h4>'
+                    + '<p class="text-secondary">El tiempo de ' + (d.minutos || 15) + ' minutos terminó o la reservación fue cancelada, y la habitación se liberó.</p>'
+                    + '<button type="button" class="btn btn-emerald px-4" data-abrir-chat>Reservar de nuevo con el asistente</button></div></div>';
+            }
+            html += '</div></div>';
+            document.getElementById('pagoHost').innerHTML = html;
+            if (pend) { TNPago.init(r.idReservacion, d.restante); }
+        });
+    }).catch(function (err) {
+        TNLayout.showFlash('aviso', err.message || 'No se pudo cargar la reservación.');
+        document.getElementById('pagoHost').innerHTML = '<div class="text-center py-4"><a href="/mis-reservaciones" class="btn btn-tn">Volver a mis reservaciones</a></div>';
+    });
+})();
+</script>
+</body>
+</html>

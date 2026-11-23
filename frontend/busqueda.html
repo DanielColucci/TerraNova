@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#0b0b0c">
+    <title>Búsqueda avanzada · Hotel TerraNova</title>
+    <link rel="stylesheet" href="/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/css/fonts.css">
+    <link rel="stylesheet" href="/css/icons.css">
+    <link rel="stylesheet" href="/css/terranova.css">
+</head>
+<body>
+<div id="topbarHost"></div>
+<div class="app-shell">
+    <div id="sidebarHost"></div>
+
+    <main class="content">
+        <div class="page-header">
+            <div>
+                <div class="crumbs">Historias de usuario / Disponibilidad</div>
+                <h1 class="page-title">Búsqueda avanzada</h1>
+                <p class="page-sub">Filtra habitaciones disponibles de hoteles activos por ciudad, sede, tipo, capacidad, precio y fechas.</p>
+            </div>
+        </div>
+
+        <div id="flashHost"></div>
+
+        <form id="formBuscar" class="card-tn mb-4">
+            <div class="card-body-tn">
+                <div class="row g-3">
+                    <div class="col-md-4 col-lg-3"><label class="form-label" for="fCiudad">Ciudad</label><select id="fCiudad" class="form-select"><option value="">Todas</option></select></div>
+                    <div class="col-md-4 col-lg-3"><label class="form-label" for="fHotel">Hotel</label><select id="fHotel" class="form-select"><option value="">Todos</option></select></div>
+                    <div class="col-md-4 col-lg-3"><label class="form-label" for="fTipo">Tipo</label><select id="fTipo" class="form-select"><option value="">Todos</option></select></div>
+                    <div class="col-6 col-lg-3"><label class="form-label" for="fCap">Capacidad mín.</label><input id="fCap" type="number" min="1" max="20" class="form-control" placeholder="Ej. 2"></div>
+                    <div class="col-6 col-lg-3"><label class="form-label" for="fPrecio">Precio máx./noche</label><input id="fPrecio" type="number" min="0" step="50" class="form-control" placeholder="Ej. 2000"></div>
+                    <div class="col-6 col-lg-3"><label class="form-label" for="fEntrada">Entrada</label><input id="fEntrada" type="date" class="form-control"></div>
+                    <div class="col-6 col-lg-3"><label class="form-label" for="fSalida">Salida</label><input id="fSalida" type="date" class="form-control"></div>
+                    <div class="col-md-6 col-lg-3"><label class="form-label" for="fOrden">Ordenar por</label>
+                        <select id="fOrden" class="form-select">
+                            <option value="precio">Menor precio</option>
+                            <option value="precio-desc">Mayor precio</option>
+                            <option value="capacidad">Mayor capacidad</option>
+                            <option value="hotel">Hotel</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="d-flex gap-2 mt-3">
+                    <button type="submit" class="btn btn-tn"><i class="bi bi-search me-1"></i>Buscar</button>
+                    <button type="button" id="btnLimpiar" class="btn btn-soft">Limpiar</button>
+                </div>
+            </div>
+        </form>
+
+        <div id="resHost"></div>
+    </main>
+</div>
+
+<script src="/js/bootstrap.bundle.min.js"></script>
+<script src="/js/config.js"></script>
+<script src="/js/api.js"></script>
+<script src="/js/terranova.js"></script>
+<script src="/js/chat-widget.js"></script>
+<script src="/js/layout.js"></script>
+<script>
+(function () {
+    var catalogosCargados = false;
+
+    function buscar() {
+        var qs = new URLSearchParams();
+        var map = {
+            ciudad: 'fCiudad', idHotel: 'fHotel', idTipo: 'fTipo',
+            capacidad: 'fCap', precioMax: 'fPrecio', entrada: 'fEntrada', salida: 'fSalida', orden: 'fOrden'
+        };
+        Object.keys(map).forEach(function (k) {
+            var v = document.getElementById(map[k]).value;
+            if (v) { qs.set(k, v); }
+        });
+
+        TN.get('/api/busqueda?' + qs.toString()).then(function (d) {
+            if (!catalogosCargados) {
+                catalogosCargados = true;
+                var c = document.getElementById('fCiudad');
+                c.innerHTML = '<option value="">Todas</option>' + (d.ciudades || []).map(function (x) { return '<option value="' + TN.esc(x) + '">' + TN.esc(x) + '</option>'; }).join('');
+                var h = document.getElementById('fHotel');
+                h.innerHTML = '<option value="">Todos</option>' + (d.hoteles || []).map(function (x) { return '<option value="' + x.idHotel + '">' + TN.esc(x.nombre) + '</option>'; }).join('');
+                var t = document.getElementById('fTipo');
+                t.innerHTML = '<option value="">Todos</option>' + (d.tipos || []).map(function (x) { return '<option value="' + x.idTipo + '">' + TN.esc(x.nombre) + '</option>'; }).join('');
+            }
+            if (d.aviso) { TNLayout.showFlash('aviso', d.aviso); }
+            var list = d.resultados || [];
+            var host = document.getElementById('resHost');
+            if (!list.length) {
+                host.innerHTML = '<div class="card-tn empty-state"><i class="bi bi-search"></i>No hay habitaciones disponibles con esos filtros.</div>';
+                return;
+            }
+            host.innerHTML = '<div class="small text-muted mb-3">' + list.length + ' habitación(es) encontrada(s)' + (d.noches > 0 ? ' · ' + d.noches + ' noche(s)' : '') + '</div>'
+                + '<div class="row g-3">' + list.map(function (r) {
+                    return '<div class="col-md-6 col-xl-4"><div class="result-card">'
+                        + '<div class="result-top"><div><div class="result-title">' + TN.esc(r.tipo) + '<span class="result-num">Hab. ' + TN.esc(r.habitacion) + '</span></div>'
+                        + '<div class="small text-muted">' + TN.esc(r.hotel) + ' · ' + TN.esc(r.ciudad) + ' · Piso ' + r.piso + '</div></div>'
+                        + '<span class="estado-badge estado-disponible"><span class="dot"></span>Disponible</span></div>'
+                        + '<p class="small text-secondary flex-fill">' + TN.esc(r.descripcion) + '</p>'
+                        + '<div class="small text-muted mb-2"><i class="bi bi-people me-1"></i>Hasta <strong>' + r.capacidad + '</strong> personas</div>'
+                        + '<div class="result-price"><div><div class="small text-muted">Tarifa/noche</div><span class="money">' + TN.money(r.precio) + '</span></div>'
+                        + (r.totalEstimado != null ? '<div class="text-end"><div class="small text-muted">Total ' + d.noches + ' n.</div><strong class="money">' + TN.money(r.totalEstimado) + '</strong></div>' : '')
+                        + '</div><a href="/reservaciones/form?idHabitacion=' + r.idHabitacion + '" class="btn btn-tn btn-sm mt-3 w-100"><i class="bi bi-calendar-plus me-1"></i>Reservar</a></div></div>';
+                }).join('') + '</div>';
+        }).catch(function (err) { TNLayout.showFlash('error', err.message); });
+    }
+
+    document.getElementById('formBuscar').addEventListener('submit', function (e) { e.preventDefault(); buscar(); });
+    document.getElementById('btnLimpiar').addEventListener('click', function () {
+        document.getElementById('formBuscar').reset();
+        buscar();
+    });
+
+    TNLayout.init({ activo: 'h-busqueda', roles: ['ADMINISTRADOR'] }).then(buscar);
+})();
+</script>
+</body>
+</html>

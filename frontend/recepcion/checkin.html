@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#0b0b0c">
+    <title>Check-in · Hotel TerraNova</title>
+    <link rel="stylesheet" href="/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/css/fonts.css">
+    <link rel="stylesheet" href="/css/icons.css">
+    <link rel="stylesheet" href="/css/terranova.css">
+</head>
+<body>
+<div id="topbarHost"></div>
+<div class="app-shell">
+    <div id="sidebarHost"></div>
+
+    <main class="content">
+        <div class="page-header">
+            <div>
+                <div class="crumbs"><a href="/recepcion/panel">Recepción</a> / Check-in</div>
+                <h1 class="page-title">Check-in</h1>
+                <p class="page-sub">Busca una reservación por folio, nombre o correo, o elige una llegada del día.</p>
+            </div>
+            <a href="/recepcion/nueva-reservacion" class="btn btn-tn"><i class="bi bi-calendar-plus me-1"></i>Nueva en mostrador</a>
+        </div>
+
+        <div id="flashHost"></div>
+
+        <form id="formBuscar" class="card-tn mb-4">
+            <div class="card-body-tn d-flex gap-2 flex-wrap">
+                <input type="text" id="qInput" class="form-control flex-fill" placeholder="Folio (#), nombre del huésped o correo…">
+                <button type="submit" class="btn btn-tn"><i class="bi bi-search me-1"></i>Buscar</button>
+                <button type="button" id="btnHoy" class="btn btn-soft">Llegadas de hoy</button>
+            </div>
+        </form>
+
+        <div class="card-tn" id="resBox"><div class="text-center py-5 text-muted">Cargando…</div></div>
+    </main>
+</div>
+
+<script src="/js/bootstrap.bundle.min.js"></script>
+<script src="/js/config.js"></script>
+<script src="/js/api.js"></script>
+<script src="/js/terranova.js"></script>
+<script src="/js/chat-widget.js"></script>
+<script src="/js/layout.js"></script>
+<script>
+(function () {
+    function buscar(q) {
+        var url = '/api/recepcion/checkin' + (q ? '?q=' + encodeURIComponent(q) : '');
+        TN.get(url).then(function (d) {
+            var list = d.resultados || [];
+            var box = document.getElementById('resBox');
+            if (!list.length) {
+                box.innerHTML = '<div class="empty-state"><i class="bi bi-key"></i>' + (d.buscando ? 'No se encontraron reservaciones con ese criterio.' : 'No hay llegadas pendientes para hoy.') + '</div>';
+                return;
+            }
+            box.innerHTML = '<div class="table-wrap"><table class="table table-tn align-middle"><thead><tr><th>Folio</th><th>Huésped</th><th>Hotel y Hab.</th><th>Entrada → Salida</th><th>Estado</th><th class="text-end">Total</th><th class="text-end">Acción</th></tr></thead><tbody>'
+                + list.map(function (r) {
+                    var h = r.habitacion || {};
+                    return '<tr><td class="cell-main">#' + r.idReservacion + '</td>'
+                        + '<td><div class="cell-main">' + TN.esc(r.nombreHuesped) + '</div><div class="cell-sub">' + TN.esc(r.correo || r.telefono) + '</div></td>'
+                        + '<td>' + TN.esc(h.hotelNombre) + '<div class="cell-sub">Hab. ' + TN.esc(h.numero) + ' · ' + TN.esc(h.tipoNombre) + '</div></td>'
+                        + '<td>' + TN.fecha(r.fechaEntrada) + ' → ' + TN.fecha(r.fechaSalida) + '</td>'
+                        + '<td>' + TN.estadoBadge(r.estado) + '</td>'
+                        + '<td class="text-end"><span class="money">' + TN.money(r.costoTotal) + '</span></td>'
+                        + '<td class="text-end"><a href="/recepcion/checkin-detalle?id=' + r.idReservacion + '" class="btn btn-emerald btn-sm"><i class="bi bi-key me-1"></i>Validar llegada</a></td></tr>';
+                }).join('') + '</tbody></table></div>';
+        }).catch(function (err) { TNLayout.showFlash('error', err.message); });
+    }
+
+    document.getElementById('formBuscar').addEventListener('submit', function (e) {
+        e.preventDefault();
+        buscar(document.getElementById('qInput').value.trim());
+    });
+    document.getElementById('btnHoy').addEventListener('click', function () {
+        document.getElementById('qInput').value = '';
+        buscar('');
+    });
+
+    TNLayout.init({ activo: 'h-checkin', roles: ['RECEPCIONISTA', 'ADMINISTRADOR'] }).then(function () {
+        var q = TN.qs('q') || '';
+        document.getElementById('qInput').value = q;
+        buscar(q);
+    });
+})();
+</script>
+</body>
+</html>

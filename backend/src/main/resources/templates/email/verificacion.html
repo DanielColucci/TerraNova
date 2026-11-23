@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Confirma tu correo</title></head>
+<body style="margin:0;padding:0;background:#efe9df;font-family:Georgia,'Times New Roman',serif;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#efe9df;padding:24px 12px;">
+<tr><td align="center">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:22px;overflow:hidden;">
+    <tr><td style="background:#0b0b0c;padding:28px 24px;text-align:center;">
+      <div style="display:inline-block;width:46px;height:46px;line-height:46px;border-radius:50%;background:#e2d5c3;color:#0b0b0c;font-weight:bold;font-size:17px;">TN</div>
+      <div style="color:#e2d5c3;font-size:22px;letter-spacing:1px;margin-top:10px;">TerraNova</div>
+      <div style="color:#c5a880;font-size:12px;letter-spacing:3px;text-transform:uppercase;margin-top:2px;">Sanctuary &amp; Resort</div>
+    </td></tr>
+    <tr><td style="padding:34px 28px 10px;color:#1d1d1f;">
+      <h1 style="margin:0 0 12px;font-size:24px;font-weight:600;color:#0b0b0c;">Hola, <span th:text="${nombre}">Huésped</span></h1>
+      <p style="margin:0 0 22px;font-size:16px;line-height:1.6;color:#3d3d40;">Gracias por crear tu cuenta. Confirma tu correo electrónico para poder reservar y administrar tus estancias.</p>
+      <p style="text-align:center;margin:0 0 24px;">
+        <a th:href="${enlace}" href="#" style="display:inline-block;background:#0b0b0c;color:#e2d5c3;text-decoration:none;padding:15px 34px;border-radius:999px;font-size:16px;font-weight:bold;">Confirmar mi correo</a>
+      </p>
+      <p style="margin:0 0 8px;font-size:13px;line-height:1.5;color:#6e6e73;">El enlace es de un solo uso y vence en 24 horas. Si el botón no funciona, copia y pega esta dirección en tu navegador:</p>
+      <p style="margin:0 0 22px;font-size:12px;word-break:break-all;color:#8d7149;" th:text="${enlace}">https://...</p>
+      <p style="margin:0;font-size:13px;color:#6e6e73;">Si no creaste esta cuenta, ignora este mensaje.</p>
+    </td></tr>
+    <tr><td style="padding:22px 28px 30px;"><div style="border-top:1px solid #e8e0d2;padding-top:16px;font-size:12px;color:#9a9a9f;text-align:center;">Hotel TerraNova · Este es un mensaje automático, no respondas a este correo.</div></td></tr>
+  </table>
+</td></tr></table>
+</body></html>

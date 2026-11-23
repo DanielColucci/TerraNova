@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#0b0b0c">
+    <title>Usuarios · Hotel TerraNova</title>
+    <link rel="stylesheet" href="/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/css/fonts.css">
+    <link rel="stylesheet" href="/css/icons.css">
+    <link rel="stylesheet" href="/css/terranova.css">
+</head>
+<body>
+<div id="topbarHost"></div>
+<div class="app-shell">
+    <div id="sidebarHost"></div>
+    <main class="content">
+        <div class="page-header">
+            <div>
+                <div class="crumbs">Administración / Usuarios</div>
+                <h1 class="page-title">Usuarios y personal</h1>
+                <p class="page-sub">El registro público solo crea huéspedes. Aquí creas personal (gerente, recepcionista, administrador) y gestionas roles.</p>
+            </div>
+        </div>
+        <div id="flashHost"></div>
+
+        <form id="formNuevo" class="card-tn mb-4">
+            <div class="card-head"><h6 class="m-0"><i class="bi bi-person-check me-2 text-primary"></i>Crear cuenta de personal</h6></div>
+            <div class="card-body-tn">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-3"><label class="form-label" for="uNombre">Nombre</label><input id="uNombre" class="form-control" maxlength="120" required></div>
+                    <div class="col-md-3"><label class="form-label" for="uCorreo">Correo</label><input id="uCorreo" type="email" class="form-control" maxlength="120" required></div>
+                    <div class="col-md-2"><label class="form-label" for="uPass">Contraseña</label><input id="uPass" type="password" minlength="8" class="form-control" required></div>
+                    <div class="col-md-2"><label class="form-label" for="uRol">Rol</label>
+                        <select id="uRol" class="form-select">
+                            <option value="GERENTE">GERENTE</option>
+                            <option value="RECEPCIONISTA">RECEPCIONISTA</option>
+                            <option value="ADMINISTRADOR">ADMINISTRADOR</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2 d-grid"><button type="submit" class="btn btn-tn">Crear</button></div>
+                </div>
+            </div>
+        </form>
+
+        <div class="filtro-roles" id="filtroRoles"></div>
+
+        <div class="card-tn">
+            <div class="table-wrap"><table class="table table-tn align-middle">
+                <thead><tr><th>Usuario</th><th>Rol</th><th>Verificado</th><th>Estado</th><th class="text-end">Cambiar rol / estado</th></tr></thead>
+                <tbody id="tbodyUsers"><tr><td colspan="5" class="text-center py-4 text-muted">Cargando…</td></tr></tbody>
+            </table></div>
+        </div>
+    </main>
+</div>
+<script src="/js/bootstrap.bundle.min.js"></script>
+<script src="/js/config.js"></script>
+<script src="/js/api.js"></script>
+<script src="/js/terranova.js"></script>
+<script src="/js/chat-widget.js"></script>
+<script src="/js/layout.js"></script>
+<script>
+(function () {
+    var yo = null;
+    var filtro = TN.qs('rol') || '';
+
+    function cargar() {
+        TN.get('/api/usuarios' + (filtro ? '?rol=' + encodeURIComponent(filtro) : '')).then(function (d) {
+            var c = d.conteo || {};
+            var pills = '<a href="#" class="' + (!d.filtro ? 'active' : '') + '" data-rol="">Todos <span class="n">' + d.total + '</span></a>'
+                + (d.roles || []).map(function (r) {
+                    return '<a href="#" class="' + (d.filtro === r ? 'active' : '') + '" data-rol="' + r + '">' + r + ' <span class="n">' + (c[r] || 0) + '</span></a>';
+                }).join('');
+            document.getElementById('filtroRoles').innerHTML = pills;
+            document.querySelectorAll('[data-rol]').forEach(function (a) {
+                a.addEventListener('click', function (ev) { ev.preventDefault(); filtro = a.getAttribute('data-rol'); cargar(); });
+            });
+
+            var lista = d.usuarios || [];
+            var tb = document.getElementById('tbodyUsers');
+            if (!lista.length) {
+                tb.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">No hay cuentas en este filtro.</td></tr>';
+                return;
+            }
+            tb.innerHTML = lista.map(function (u) {
+                var esYo = yo && u.idUsuario === yo.id;
+                var ctrl = esYo
+                    ? '<span class="small text-muted">Tu cuenta</span>'
+                    : '<div class="form-rol-inline">'
+                      + '<select class="form-select form-select-sm" data-sel-rol="' + u.idUsuario + '">'
+                      + (d.roles || []).map(function (r) { return '<option value="' + r + '"' + (u.rol === r ? ' selected' : '') + '>' + r + '</option>'; }).join('')
+                      + '</select>'
+                      + '<button type="button" class="btn btn-soft btn-sm" data-save-rol="' + u.idUsuario + '">Guardar</button>'
+                      + '<button type="button" class="btn btn-soft btn-sm ' + (u.activo ? 'text-danger' : 'text-success') + '" data-toggle-act="' + u.idUsuario + '" data-act="' + (!u.activo) + '">'
+                      + (u.activo ? 'Desactivar' : 'Activar') + '</button></div>';
+                return '<tr><td><div class="cell-main">' + TN.esc(u.nombre) + '</div><div class="cell-sub">' + TN.esc(u.correo) + '</div></td>'
+                    + '<td><span class="rol-badge rol-' + TN.esc(String(u.rol || '').toLowerCase()) + '"><span class="dot"></span>' + TN.esc(u.rol) + '</span></td>'
+                    + '<td>' + (u.verified ? '<span class="text-success small fw-semibold">Sí</span>' : '<span class="text-muted small">Pendiente</span>') + '</td>'
+                    + '<td>' + TN.activoBadge(u.activo) + '</td>'
+                    + '<td class="text-end">' + ctrl + '</td></tr>';
+            }).join('');
+
+            tb.querySelectorAll('[data-save-rol]').forEach(function (b) {
+                b.addEventListener('click', function () {
+                    var id = b.getAttribute('data-save-rol');
+                    var rol = tb.querySelector('[data-sel-rol="' + id + '"]').value;
+                    TN.patch('/api/usuarios/' + id + '/rol', { rol: rol }).then(function (r) {
+                        TNLayout.showFlash('exito', r.mensaje); cargar();
+                    }).catch(function (e) { TNLayout.showFlash('aviso', e.message); });
+                });
+            });
+            tb.querySelectorAll('[data-toggle-act]').forEach(function (b) {
+                b.addEventListener('click', function () {
+                    var id = b.getAttribute('data-toggle-act');
+                    var act = b.getAttribute('data-act') === 'true';
+                    TN.patch('/api/usuarios/' + id + '/activo', { activo: act }).then(function (r) {
+                        TNLayout.showFlash('exito', r.mensaje); cargar();
+                    }).catch(function (e) { TNLayout.showFlash('aviso', e.message); });
+                });
+            });
+        }).catch(function (e) { TNLayout.showFlash('error', e.message); });
+    }
+
+    document.getElementById('formNuevo').addEventListener('submit', function (e) {
+        e.preventDefault();
+        var btn = this.querySelector('button[type=submit]'); btn.disabled = true;
+        TN.post('/api/usuarios', {
+            nombre: document.getElementById('uNombre').value.trim(),
+            correo: document.getElementById('uCorreo').value.trim(),
+            password: document.getElementById('uPass').value,
+            rol: document.getElementById('uRol').value
+        }).then(function (r) {
+            btn.disabled = false;
+            document.getElementById('formNuevo').reset();
+            TNLayout.showFlash('exito', r.mensaje);
+            cargar();
+        }).catch(function (err) { btn.disabled = false; TNLayout.showFlash('aviso', err.message); });
+    });
+
+    TNLayout.init({ activo: 'usuarios', roles: ['ADMINISTRADOR'] }).then(function (u) { yo = u; cargar(); });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#0b0b0c">
+    <title>Hotel TerraNova</title>
+    <link rel="stylesheet" href="/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/css/fonts.css">
+    <link rel="stylesheet" href="/css/terranova.css">
+</head>
+<body class="auth-body d-flex align-items-center justify-content-center">
+<div class="text-center text-light">
+    <div class="brand-logo mx-auto mb-3">TN</div>
+    <div class="spinner-border" style="color:var(--tn-accent)" role="status"></div>
+</div>
+<script src="/js/config.js"></script>
+<script src="/js/api.js"></script>
+<script>
+    TN.me({ optional: true }).then(function (u) {
+        location.replace(u && u.redireccion ? u.redireccion : '/auth/acceso');
+    });
+</script>
+</body>
+</html>

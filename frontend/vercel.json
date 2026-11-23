@@ -1,0 +1,19 @@
+{
+  "cleanUrls": true,
+  "trailingSlash": false,
+  "rewrites": [
+    { "source": "/login", "destination": "/auth/acceso.html" },
+    { "source": "/registro", "destination": "/auth/acceso.html" },
+    { "source": "/verificar", "destination": "/auth/verificar.html" },
+    { "source": "/pago/:folio", "destination": "/pago.html" },
+    { "source": "/ejecutivo", "destination": "/gerente/dashboard.html" },
+    { "source": "/checkin", "destination": "/recepcion/checkin.html" },
+    { "source": "/checkout", "destination": "/recepcion/checkout.html" },
+    { "source": "/recepcion/reservaciones/nueva", "destination": "/recepcion/nueva-reservacion.html" },
+    { "source": "/hoteles", "destination": "/hoteles/lista.html" },
+    { "source": "/tipos", "destination": "/tipos/lista.html" },
+    { "source": "/habitaciones", "destination": "/habitaciones/lista.html" },
+    { "source": "/reservaciones", "destination": "/reservaciones/lista.html" },
+    { "source": "/usuarios", "destination": "/usuarios/lista.html" }
+  ]
+}

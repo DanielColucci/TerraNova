@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#0b0b0c">
+    <title>Habitaciones · Hotel TerraNova</title>
+    <link rel="stylesheet" href="/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/css/fonts.css">
+    <link rel="stylesheet" href="/css/icons.css">
+    <link rel="stylesheet" href="/css/terranova.css">
+</head>
+<body>
+<div id="topbarHost"></div>
+<div class="app-shell">
+    <div id="sidebarHost"></div>
+    <main class="content">
+        <div class="page-header">
+            <div>
+                <div class="crumbs">Administración / Habitaciones</div>
+                <h1 class="page-title">Habitaciones</h1>
+                <p class="page-sub">Inventario de habitaciones de todos los hoteles.</p>
+            </div>
+            <a href="/habitaciones/form" class="btn btn-tn"><i class="bi bi-plus-circle me-1"></i>Nueva habitación</a>
+        </div>
+        <div id="flashHost"></div>
+        <div class="card-tn">
+            <div class="card-head">
+                <div class="d-flex flex-wrap gap-2">
+                    <button type="button" class="chip active" data-estado-filtro="todos">Todas</button>
+                    <button type="button" class="chip" data-estado-filtro="disponible">Disponibles</button>
+                    <button type="button" class="chip" data-estado-filtro="ocupada">Ocupadas</button>
+                    <button type="button" class="chip" data-estado-filtro="mantenimiento">Mantenimiento</button>
+                </div>
+                <input type="search" class="form-control form-control-sm" style="max-width:260px" placeholder="Buscar hotel, número o tipo…" data-filtro-tabla="#tablaHabs">
+            </div>
+            <div class="table-wrap"><table class="table table-tn align-middle" id="tablaHabs">
+                <thead><tr><th>Hotel</th><th>Número</th><th>Piso</th><th>Tipo</th><th class="text-end">Tarifa</th><th>Estado</th><th class="text-end">Acciones</th></tr></thead>
+                <tbody id="tbodyHabs"><tr><td colspan="7" class="text-center py-4 text-muted">Cargando…</td></tr></tbody>
+            </table></div>
+        </div>
+    </main>
+</div>
+<script src="/js/bootstrap.bundle.min.js"></script>
+<script src="/js/config.js"></script>
+<script src="/js/api.js"></script>
+<script src="/js/terranova.js"></script>
+<script src="/js/chat-widget.js"></script>
+<script src="/js/layout.js"></script>
+<script>
+(function () {
+    function cargar() {
+        TN.get('/api/habitaciones').then(function (d) {
+            var lista = d.habitaciones || [];
+            var tb = document.getElementById('tbodyHabs');
+            if (!lista.length) {
+                tb.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-muted">No hay habitaciones registradas.</td></tr>';
+                return;
+            }
+            tb.innerHTML = lista.map(function (h) {
+                return '<tr data-fila data-estado="' + TN.esc(h.estadoCss) + '">'
+                    + '<td><div class="cell-main">' + TN.esc(h.hotelNombre) + '</div>' + (h.hotelActivo ? '' : '<div class="cell-sub text-danger">Inactivo</div>') + '</td>'
+                    + '<td class="cell-main">' + TN.esc(h.numero) + '</td>'
+                    + '<td>Piso ' + h.piso + '</td>'
+                    + '<td>' + TN.esc(h.tipoNombre) + ' <span class="cell-sub">(' + h.capacidad + ' p.)</span></td>'
+                    + '<td class="text-end"><span class="money">' + TN.money(h.precioBase) + '</span></td>'
+                    + '<td>' + TN.estadoBadge(h.estado) + '</td>'
+                    + '<td class="text-end text-nowrap">'
+                    + '<a href="/habitaciones/detalle?id=' + h.idHabitacion + '" class="btn-icon view me-1" title="Ver"><i class="bi bi-eye"></i></a>'
+                    + '<a href="/habitaciones/form?id=' + h.idHabitacion + '" class="btn-icon edit me-1" title="Editar"><i class="bi bi-pencil"></i></a>'
+                    + '<button type="button" class="btn-icon del" title="Eliminar" data-del="' + h.idHabitacion + '" data-nom="' + TN.esc('Hab. ' + h.numero + ' (' + h.hotelNombre + ')') + '"><i class="bi bi-trash3"></i></button>'
+                    + '</td></tr>';
+            }).join('');
+            tb.querySelectorAll('[data-del]').forEach(function (b) {
+                b.addEventListener('click', function () {
+                    var id = b.getAttribute('data-del'), nom = b.getAttribute('data-nom');
+                    TNLayout.confirmarEliminar({
+                        entidad: 'la habitación', nombre: nom, nota: '',
+                        onConfirm: function () {
+                            return TN.del('/api/habitaciones/' + id).then(function (r) {
+                                TNLayout.showFlash('exito', r.mensaje); cargar();
+                            }).catch(function (e) { TNLayout.showFlash('aviso', e.message); });
+                        }
+                    });
+                });
+            });
+        }).catch(function (e) { TNLayout.showFlash('error', e.message); });
+    }
+    TNLayout.init({ activo: 'habitaciones', roles: ['ADMINISTRADOR'] }).then(cargar);
+})();
+</script>
+</body>
+</html>

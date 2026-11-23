@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#0b0b0c">
+    <title>Hoteles · Hotel TerraNova</title>
+    <link rel="stylesheet" href="/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/css/fonts.css">
+    <link rel="stylesheet" href="/css/icons.css">
+    <link rel="stylesheet" href="/css/terranova.css">
+</head>
+<body>
+<div id="topbarHost"></div>
+<div class="app-shell">
+    <div id="sidebarHost"></div>
+    <main class="content">
+        <div class="page-header">
+            <div>
+                <div class="crumbs">Administración / Hoteles</div>
+                <h1 class="page-title">Hoteles</h1>
+                <p class="page-sub">Sedes de la cadena TerraNova.</p>
+            </div>
+            <a href="/hoteles/form" class="btn btn-tn"><i class="bi bi-plus-circle me-1"></i>Nuevo hotel</a>
+        </div>
+        <div id="flashHost"></div>
+        <div class="card-tn">
+            <div class="card-head">
+                <h6 class="m-0">Listado de hoteles</h6>
+                <input type="search" class="form-control form-control-sm" style="max-width:260px" placeholder="Buscar hotel o ciudad…" data-filtro-tabla="#tablaHoteles">
+            </div>
+            <div class="table-wrap"><table class="table table-tn align-middle" id="tablaHoteles">
+                <thead><tr><th>Hotel</th><th>Ciudad</th><th>Contacto</th><th class="text-end">Hab.</th><th>Estado</th><th class="text-end">Acciones</th></tr></thead>
+                <tbody id="tbodyHoteles"><tr><td colspan="6" class="text-center py-4 text-muted">Cargando…</td></tr></tbody>
+            </table></div>
+        </div>
+    </main>
+</div>
+<script src="/js/bootstrap.bundle.min.js"></script>
+<script src="/js/config.js"></script>
+<script src="/js/api.js"></script>
+<script src="/js/terranova.js"></script>
+<script src="/js/chat-widget.js"></script>
+<script src="/js/layout.js"></script>
+<script>
+(function () {
+    function cargar() {
+        TN.get('/api/hoteles').then(function (lista) {
+            var tb = document.getElementById('tbodyHoteles');
+            if (!lista || !lista.length) {
+                tb.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">No hay hoteles registrados.</td></tr>';
+                return;
+            }
+            tb.innerHTML = lista.map(function (h) {
+                return '<tr data-fila><td><div class="cell-main">' + TN.esc(h.nombre) + '</div><div class="cell-sub">' + TN.esc(h.direccion) + '</div></td>'
+                    + '<td>' + TN.esc(h.ciudad) + '</td>'
+                    + '<td><div>' + TN.esc(h.telefono) + '</div><div class="cell-sub">' + TN.esc(h.correo) + '</div></td>'
+                    + '<td class="text-end">' + (h.totalHabitaciones || 0) + '</td>'
+                    + '<td>' + TN.activoBadge(h.activo) + '</td>'
+                    + '<td class="text-end text-nowrap">'
+                    + '<a href="/hoteles/detalle?id=' + h.idHotel + '" class="btn-icon view me-1" title="Ver"><i class="bi bi-eye"></i></a>'
+                    + '<a href="/hoteles/form?id=' + h.idHotel + '" class="btn-icon edit me-1" title="Editar"><i class="bi bi-pencil"></i></a>'
+                    + '<button type="button" class="btn-icon del" title="Eliminar" data-del="' + h.idHotel + '" data-nom="' + TN.esc(h.nombre) + '"><i class="bi bi-trash3"></i></button>'
+                    + '</td></tr>';
+            }).join('');
+            tb.querySelectorAll('[data-del]').forEach(function (b) {
+                b.addEventListener('click', function () {
+                    var id = b.getAttribute('data-del'), nom = b.getAttribute('data-nom');
+                    TNLayout.confirmarEliminar({
+                        entidad: 'el hotel', nombre: nom,
+                        nota: 'Solo se puede eliminar si no tiene habitaciones asociadas.',
+                        onConfirm: function () {
+                            return TN.del('/api/hoteles/' + id).then(function (r) {
+                                TNLayout.showFlash('exito', r.mensaje); cargar();
+                            }).catch(function (e) { TNLayout.showFlash('aviso', e.message); });
+                        }
+                    });
+                });
+            });
+        }).catch(function (e) { TNLayout.showFlash('error', e.message); });
+    }
+    TNLayout.init({ activo: 'hoteles', roles: ['ADMINISTRADOR'] }).then(cargar);
+})();
+</script>
+</body>
+</html>

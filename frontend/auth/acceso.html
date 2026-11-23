@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Acceso · Hotel TerraNova</title>
+    <link rel="stylesheet" href="/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/css/fonts.css">
+    <link rel="stylesheet" href="/css/icons.css">
+    <link rel="stylesheet" href="/css/terranova.css">
+</head>
+<body class="auth-body">
+<div class="auth-wrap">
+    <div class="auth-hero d-none d-lg-flex">
+        <div>
+            <div class="brand-logo mb-3">TN</div>
+            <h1>TerraNova<br><em>Sanctuary &amp; Resort</em></h1>
+            <p>Reserva tu estancia, consulta tus reservaciones y platica con nuestro asistente virtual.</p>
+        </div>
+    </div>
+
+    <div class="auth-card">
+        <div class="alert flash flash-exito d-none" id="bannerVerificado">
+            <i class="bi bi-check-circle-fill"></i><div>Cuenta verificada. Ya puedes iniciar sesión.</div>
+        </div>
+
+        <ul class="nav nav-pills auth-tabs mb-4" role="tablist">
+            <li class="nav-item"><button class="nav-link active" data-bs-toggle="pill" data-bs-target="#panelLogin" type="button">Iniciar sesión</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#panelRegistro" type="button">Crear cuenta</button></li>
+        </ul>
+
+        <div class="tab-content">
+            <div class="tab-pane fade show active" id="panelLogin">
+                <form id="formLogin" novalidate>
+                    <div class="mb-3">
+                        <label class="form-label" for="loginCorreo">Correo electrónico</label>
+                        <input type="email" id="loginCorreo" class="form-control" autocomplete="username" placeholder="tucorreo@gmail.com" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="loginPassword">Contraseña</label>
+                        <input type="password" id="loginPassword" class="form-control" autocomplete="current-password" required>
+                    </div>
+                    <div class="alert flash flash-error d-none" id="loginError"><i class="bi bi-x-octagon-fill"></i><div></div></div>
+                    <button type="submit" class="btn btn-tn w-100 py-2">Entrar</button>
+                    <div class="text-center mt-3 small"><a href="/auth/verificar">¿No te llegó el correo de verificación?</a></div>
+                </form>
+            </div>
+
+            <div class="tab-pane fade" id="panelRegistro">
+                <form id="formRegistro" novalidate>
+                    <div class="mb-3">
+                        <label class="form-label" for="regNombre">Nombre completo</label>
+                        <input type="text" id="regNombre" class="form-control" maxlength="120" autocomplete="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="regCorreo">Correo electrónico</label>
+                        <input type="email" id="regCorreo" class="form-control" autocomplete="email" placeholder="tucorreo@ejemplo.com" required>
+                        <div class="form-hint">Te enviaremos un enlace para confirmar tu correo.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="regPassword">Contraseña</label>
+                        <input type="password" id="regPassword" class="form-control" minlength="8" autocomplete="new-password" required>
+                        <div class="form-hint">Mínimo 8 caracteres. Se guarda cifrada (BCrypt).</div>
+                    </div>
+                    <div class="alert flash flash-error d-none" id="regError"><i class="bi bi-x-octagon-fill"></i><div></div></div>
+                    <button type="submit" class="btn btn-emerald w-100 py-2">Crear cuenta</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="/js/bootstrap.bundle.min.js"></script>
+<script src="/js/config.js"></script>
+<script src="/js/api.js"></script>
+<script src="/js/auth.js"></script>
+</body>
+</html>

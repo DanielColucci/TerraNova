@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#0b0b0c">
+    <title>Detalle del hotel · Hotel TerraNova</title>
+    <link rel="stylesheet" href="/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/css/fonts.css">
+    <link rel="stylesheet" href="/css/icons.css">
+    <link rel="stylesheet" href="/css/terranova.css">
+</head>
+<body>
+<div id="topbarHost"></div>
+<div class="app-shell">
+    <div id="sidebarHost"></div>
+    <main class="content">
+        <div class="page-header">
+            <div>
+                <div class="crumbs"><a href="/hoteles/lista">Hoteles</a> / Detalle</div>
+                <h1 class="page-title" id="titHotel">Hotel</h1>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="/hoteles/lista" class="btn btn-soft"><i class="bi bi-arrow-left me-1"></i>Volver</a>
+                <a id="btnEditar" href="#" class="btn btn-tn"><i class="bi bi-pencil me-1"></i>Editar</a>
+            </div>
+        </div>
+        <div id="flashHost"></div>
+        <div id="detHost"><div class="text-center py-5 text-muted">Cargando…</div></div>
+    </main>
+</div>
+<script src="/js/bootstrap.bundle.min.js"></script>
+<script src="/js/config.js"></script>
+<script src="/js/api.js"></script>
+<script src="/js/terranova.js"></script>
+<script src="/js/chat-widget.js"></script>
+<script src="/js/layout.js"></script>
+<script>
+(function () {
+    var id = TN.qs('id');
+    TNLayout.init({ activo: 'hoteles', roles: ['ADMINISTRADOR'] }).then(function () {
+        if (!id) { location.href = '/hoteles/lista'; return; }
+        document.getElementById('btnEditar').href = '/hoteles/form?id=' + encodeURIComponent(id);
+        return TN.get('/api/hoteles/' + encodeURIComponent(id));
+    }).then(function (d) {
+        if (!d) { return; }
+        var h = d.hotel, habs = d.habitaciones || [];
+        document.getElementById('titHotel').textContent = h.nombre;
+        var tabla = !habs.length
+            ? '<div class="empty-state py-4">Este hotel aún no tiene habitaciones.</div>'
+            : '<div class="table-wrap"><table class="table table-tn align-middle"><thead><tr><th>Número</th><th>Piso</th><th>Tipo</th><th class="text-end">Tarifa</th><th>Estado</th></tr></thead><tbody>'
+              + habs.map(function (x) {
+                  return '<tr><td><a href="/habitaciones/detalle?id=' + x.idHabitacion + '" class="cell-main text-decoration-none text-dark">' + TN.esc(x.numero) + '</a></td>'
+                      + '<td>Piso ' + x.piso + '</td><td>' + TN.esc(x.tipoNombre) + '</td>'
+                      + '<td class="text-end"><span class="money">' + TN.money(x.precioBase) + '</span></td>'
+                      + '<td>' + TN.estadoBadge(x.estado) + '</td></tr>';
+              }).join('') + '</tbody></table></div>';
+        document.getElementById('detHost').innerHTML = '<div class="card-tn mb-4"><div class="card-body-tn"><div class="detail-grid">'
+            + '<div class="detail-item"><div class="lbl">Dirección</div><div class="val">' + TN.esc(h.direccion) + '</div></div>'
+            + '<div class="detail-item"><div class="lbl">Ciudad</div><div class="val">' + TN.esc(h.ciudad) + '</div></div>'
+            + '<div class="detail-item"><div class="lbl">Teléfono</div><div class="val">' + TN.esc(h.telefono) + '</div></div>'
+            + '<div class="detail-item"><div class="lbl">Correo</div><div class="val">' + TN.esc(h.correo) + '</div></div>'
+            + '<div class="detail-item"><div class="lbl">Estado</div><div class="val">' + TN.activoBadge(h.activo) + '</div></div>'
+            + '</div></div></div>'
+            + '<div class="card-tn"><div class="card-head"><h5>Habitaciones (' + habs.length + ')</h5><a href="/habitaciones/form" class="btn btn-soft btn-sm">Nueva habitación</a></div>' + tabla + '</div>';
+    }).catch(function (e) { TNLayout.showFlash('error', e.message); });
+})();
+</script>
+</body>
+</html>

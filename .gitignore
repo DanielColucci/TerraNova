@@ -1,0 +1,55 @@
+# ===== Maven / build =====
+target/
+!.mvn/wrapper/maven-wrapper.properties
+.mvn/wrapper/maven-wrapper.jar
+HELP.md
+*.class
+*.jar
+*.war
+*.log
+logs/
+hs_err_pid*
+
+# ===== IDEs =====
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+.vscode/
+.classpath
+.project
+.settings/
+.factorypath
+.apt_generated
+.springBeans
+.sts4-cache
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+
+# ===== Secretos y configuración local (NUNCA versionar) =====
+.env
+.env.*
+!.env.example
+application-local.properties
+application-dev.properties
+*.pem
+*.key
+*.p12
+*.jks
+
+# ===== SO / temporales =====
+.DS_Store
+Thumbs.db
+*.swp
+*.bak
+*.tmp
+*.orig
+
+# ===== Datos locales / modelos IA =====
+*.sql.bak
+*.dump
+*.ollama
+*.zip

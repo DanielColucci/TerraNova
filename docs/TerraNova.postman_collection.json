@@ -1,0 +1,656 @@
+{
+  "info": {
+    "name": "TerraNova · Auth y pago",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Antes de 13/14: con el chat o la base crea reservaciones Pendiente_Pago del USUARIO y pon sus folios en las variables folio y folioRechazo."
+  },
+  "item": [
+    {
+      "name": "1 Registro (correo nuevo)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base}}/api/auth/register",
+          "host": [
+            "{{base}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "register"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"Huésped Prueba\",\n  \"correo\": \"{{correoNuevo}}\",\n  \"password\": \"Clave12345\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Estado 201', function(){ pm.response.to.have.status(201); });",
+              "var j=pm.response.json(); if(j.enlaceVerificacion){ pm.collectionVariables.set('token', j.enlaceVerificacion.split('token=')[1]); }"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "2 Registro con contraseña corta (error)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base}}/api/auth/register",
+          "host": [
+            "{{base}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "register"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"X Y\",\n  \"correo\": \"a@b.com\",\n  \"password\": \"123\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Estado 400', function(){ pm.response.to.have.status(400); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "3 Login sin verificar (403)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base}}/api/auth/login",
+          "host": [
+            "{{base}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "login"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo\": \"{{correoNuevo}}\",\n  \"password\": \"Clave12345\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Estado 403', function(){ pm.response.to.have.status(403); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "4 Reenviar verificación",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base}}/api/auth/resend-verification",
+          "host": [
+            "{{base}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "resend-verification"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo\": \"{{correoNuevo}}\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('200 o 429', function(){ pm.expect([200,429]).to.include(pm.response.code); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "5 Verificar con token (de correo o AUTH_DEV_MODE=true)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base}}/api/auth/verify",
+          "host": [
+            "{{base}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "verify"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"token\": \"{{token}}\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Estado 200', function(){ pm.response.to.have.status(200); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "6 Verificar con token usado (400)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base}}/api/auth/verify",
+          "host": [
+            "{{base}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "verify"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"token\": \"{{token}}\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Estado 400', function(){ pm.response.to.have.status(400); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "7 Login USUARIO",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base}}/api/auth/login",
+          "host": [
+            "{{base}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "login"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo\": \"cliente@gmail.com\",\n  \"password\": \"Cliente123!\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Estado 200', function(){ pm.response.to.have.status(200); });",
+              "pm.collectionVariables.set('jwtUsuario', pm.response.json().token);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "8 Login ADMIN",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base}}/api/auth/login",
+          "host": [
+            "{{base}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "login"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo\": \"admin@terranova.com\",\n  \"password\": \"Admin123!\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Estado 200', function(){ pm.response.to.have.status(200); });",
+              "pm.collectionVariables.set('jwtAdmin', pm.response.json().token);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "9 /api/auth/me como USUARIO",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwtUsuario}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base}}/api/auth/me",
+          "host": [
+            "{{base}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "me"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Estado 200', function(){ pm.response.to.have.status(200); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "10 Ruta de admin como USUARIO (403)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwtUsuario}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base}}/hoteles",
+          "host": [
+            "{{base}}"
+          ],
+          "path": [
+            "hoteles"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('403 o redirección', function(){ pm.expect([302,403]).to.include(pm.response.code); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "11 Ruta de admin como ADMIN",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwtAdmin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base}}/usuarios",
+          "host": [
+            "{{base}}"
+          ],
+          "path": [
+            "usuarios"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Estado 200', function(){ pm.response.to.have.status(200); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "12 Chat como USUARIO",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwtUsuario}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base}}/api/hotel-ai/ask",
+          "host": [
+            "{{base}}"
+          ],
+          "path": [
+            "api",
+            "hotel-ai",
+            "chat"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"pregunta\": \"Muéstrame mis reservaciones\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Respuesta del chat', function(){ pm.expect(pm.response.code).to.be.oneOf([200,503]); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "13 Pago APROBADO (folio Pendiente_Pago propio)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwtUsuario}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base}}/pago/{{folio}}/procesar?titular=Huesped Prueba&numero=4242424242424242&vencimiento=12/30&cvv=123",
+          "host": [
+            "{{base}}"
+          ],
+          "path": [
+            "pago",
+            "{{folio}}",
+            "procesar?titular=Huesped Prueba&numero=4242424242424242&vencimiento=12",
+            "30&cvv=123"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Estado 200', function(){ pm.response.to.have.status(200); });",
+              "pm.test('aprobado', function(){ pm.expect(pm.response.json().aprobado).to.eql(true); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "14 Pago RECHAZADO (otro folio Pendiente_Pago)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwtUsuario}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base}}/pago/{{folioRechazo}}/procesar?titular=Huesped Prueba&numero=4000000000000002&vencimiento=12/30&cvv=123",
+          "host": [
+            "{{base}}"
+          ],
+          "path": [
+            "pago",
+            "{{folioRechazo}}",
+            "procesar?titular=Huesped Prueba&numero=4000000000000002&vencimiento=12",
+            "30&cvv=123"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Estado 200', function(){ pm.response.to.have.status(200); });",
+              "pm.test('rechazado', function(){ pm.expect(pm.response.json().aprobado).to.eql(false); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "15 Pagar reservación ajena como ADMIN (404)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwtAdmin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base}}/pago/{{folio}}/procesar?titular=X Y&numero=4242424242424242&vencimiento=12/30&cvv=123",
+          "host": [
+            "{{base}}"
+          ],
+          "path": [
+            "pago",
+            "{{folio}}",
+            "procesar?titular=X Y&numero=4242424242424242&vencimiento=12",
+            "30&cvv=123"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Estado 404', function(){ pm.response.to.have.status(404); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "16 Tarjeta inválida (400)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwtUsuario}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base}}/pago/{{folio}}/procesar?titular=X Y&numero=4242424242424241&vencimiento=12/30&cvv=123",
+          "host": [
+            "{{base}}"
+          ],
+          "path": [
+            "pago",
+            "{{folio}}",
+            "procesar?titular=X Y&numero=4242424242424241&vencimiento=12",
+            "30&cvv=123"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Estado 400', function(){ pm.response.to.have.status(400); });"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "correoNuevo",
+      "value": "prueba+1@gmail.com"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "jwtUsuario",
+      "value": ""
+    },
+    {
+      "key": "jwtAdmin",
+      "value": ""
+    },
+    {
+      "key": "folio",
+      "value": "1"
+    },
+    {
+      "key": "folioRechazo",
+      "value": "2"
+    }
+  ]
+}

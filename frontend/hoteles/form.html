@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#0b0b0c">
+    <title>Hotel · Hotel TerraNova</title>
+    <link rel="stylesheet" href="/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/css/fonts.css">
+    <link rel="stylesheet" href="/css/icons.css">
+    <link rel="stylesheet" href="/css/terranova.css">
+</head>
+<body>
+<div id="topbarHost"></div>
+<div class="app-shell">
+    <div id="sidebarHost"></div>
+    <main class="content">
+        <div class="page-header">
+            <div>
+                <div class="crumbs"><a href="/hoteles/lista">Hoteles</a> / <span id="crumbAcc">Nuevo</span></div>
+                <h1 class="page-title" id="titForm">Nuevo hotel</h1>
+            </div>
+            <a href="/hoteles/lista" class="btn btn-soft"><i class="bi bi-arrow-left me-1"></i>Volver</a>
+        </div>
+        <div id="flashHost"></div>
+        <form id="formHotel" class="card-tn" style="max-width:760px">
+            <div class="card-body-tn">
+                <div class="row g-3">
+                    <div class="col-md-6"><label class="form-label" for="nombre">Nombre</label><input id="nombre" class="form-control" maxlength="120" required></div>
+                    <div class="col-md-6"><label class="form-label" for="ciudad">Ciudad</label><input id="ciudad" class="form-control" maxlength="80" required></div>
+                    <div class="col-12"><label class="form-label" for="direccion">Dirección</label><input id="direccion" class="form-control" maxlength="200" required></div>
+                    <div class="col-md-6"><label class="form-label" for="telefono">Teléfono</label><input id="telefono" class="form-control" maxlength="20" required></div>
+                    <div class="col-md-6"><label class="form-label" for="correo">Correo electrónico</label><input id="correo" type="email" class="form-control" maxlength="120" required></div>
+                    <div class="col-12">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="activo" checked>
+                            <label class="form-check-label" for="activo">Hotel activo (visible para nuevas operaciones)</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-4 d-flex gap-2">
+                    <button type="submit" class="btn btn-tn"><i class="bi bi-check-lg me-1"></i>Guardar</button>
+                    <a href="/hoteles/lista" class="btn btn-soft">Cancelar</a>
+                </div>
+            </div>
+        </form>
+    </main>
+</div>
+<script src="/js/bootstrap.bundle.min.js"></script>
+<script src="/js/config.js"></script>
+<script src="/js/api.js"></script>
+<script src="/js/terranova.js"></script>
+<script src="/js/chat-widget.js"></script>
+<script src="/js/layout.js"></script>
+<script>
+(function () {
+    var id = TN.qs('id');
+    TNLayout.init({ activo: 'hoteles', roles: ['ADMINISTRADOR'] }).then(function () {
+        if (!id) { return; }
+        document.getElementById('crumbAcc').textContent = 'Editar';
+        document.getElementById('titForm').textContent = 'Editar hotel';
+        return TN.get('/api/hoteles/' + encodeURIComponent(id)).then(function (d) {
+            var h = d.hotel;
+            document.getElementById('nombre').value = h.nombre || '';
+            document.getElementById('ciudad').value = h.ciudad || '';
+            document.getElementById('direccion').value = h.direccion || '';
+            document.getElementById('telefono').value = h.telefono || '';
+            document.getElementById('correo').value = h.correo || '';
+            document.getElementById('activo').checked = Boolean(h.activo);
+        });
+    }).catch(function (e) { TNLayout.showFlash('error', e.message); });
+
+    document.getElementById('formHotel').addEventListener('submit', function (e) {
+        e.preventDefault();
+        var btn = this.querySelector('button[type=submit]'); btn.disabled = true;
+        var body = {
+            nombre: document.getElementById('nombre').value.trim(),
+            ciudad: document.getElementById('ciudad').value.trim(),
+            direccion: document.getElementById('direccion').value.trim(),
+            telefono: document.getElementById('telefono').value.trim(),
+            correo: document.getElementById('correo').value.trim(),
+            activo: document.getElementById('activo').checked
+        };
+        var req = id ? TN.put('/api/hoteles/' + encodeURIComponent(id), body) : TN.post('/api/hoteles', body);
+        req.then(function (r) {
+            TN.flash('exito', r.mensaje);
+            location.href = '/hoteles/lista';
+        }).catch(function (err) { btn.disabled = false; TNLayout.showFlash('aviso', err.message); });
+    });
+})();
+</script>
+</body>
+</html>

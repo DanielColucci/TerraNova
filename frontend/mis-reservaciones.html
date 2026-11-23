@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#0b0b0c">
+    <title>Mis reservaciones · Hotel TerraNova</title>
+    <link rel="stylesheet" href="/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/css/fonts.css">
+    <link rel="stylesheet" href="/css/icons.css">
+    <link rel="stylesheet" href="/css/terranova.css">
+</head>
+<body class="pagina-huesped">
+<nav class="landing-nav">
+    <div class="container d-flex flex-nowrap align-items-center justify-content-between py-2 gap-2">
+        <a href="/inicio" class="d-flex align-items-center gap-2 text-decoration-none text-dark fw-bold">
+            <span class="brand-logo" style="width:36px;height:36px">TN</span>TerraNova
+        </a>
+        <div class="d-flex flex-nowrap align-items-center gap-2">
+            <a href="/inicio" class="btn btn-soft btn-sm"><i class="bi bi-house me-1"></i><span class="nav-etiqueta">Inicio</span></a>
+            <a href="/asistente" class="btn btn-soft btn-sm"><i class="bi bi-stars me-1"></i><span class="nav-etiqueta">Asistente</span></a>
+            <button type="button" class="btn btn-soft btn-sm" data-logout aria-label="Salir"><i class="bi bi-box-arrow-left me-1"></i><span class="nav-etiqueta">Salir</span></button>
+        </div>
+    </div>
+</nav>
+
+<main class="container py-5">
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">Mis reservaciones</h1>
+            <p class="page-sub">Consulta tus estancias, completa pagos pendientes o cancela si cambiaste de planes.</p>
+        </div>
+        <button type="button" class="btn btn-emerald" data-abrir-chat data-mensaje="Quiero reservar una habitación"><i class="bi bi-plus-circle me-1"></i>Nueva reservación</button>
+    </div>
+
+    <div id="flashHost"></div>
+    <div id="listaHost"></div>
+</main>
+
+<script src="/js/bootstrap.bundle.min.js"></script>
+<script src="/js/config.js"></script>
+<script src="/js/api.js"></script>
+<script src="/js/terranova.js"></script>
+<script src="/js/chat-widget.js"></script>
+<script src="/js/layout.js"></script>
+<script>
+(function () {
+    function cargar() {
+        TN.get('/api/usuario/mis-reservaciones').then(function (lista) {
+            var host = document.getElementById('listaHost');
+            if (!lista || !lista.length) {
+                host.innerHTML = '<div class="card-tn empty-state"><i class="bi bi-calendar-x"></i>'
+                    + '<p class="mb-3">Aún no tienes reservaciones registradas.</p>'
+                    + '<button type="button" class="btn btn-tn" data-abrir-chat>Reservar con el asistente</button></div>';
+                return;
+            }
+            var tabla = '<div class="card-tn tn-tabla-res"><div class="table-wrap"><table class="table table-tn align-middle">'
+                + '<thead><tr><th>Folio</th><th>Hotel y habitación</th><th>Fechas</th><th>Huéspedes</th><th>Estado</th><th class="text-end">Total</th><th class="text-end">Acciones</th></tr></thead><tbody>'
+                + lista.map(function (r) {
+                    var h = r.habitacion || {};
+                    var acc = '';
+                    if (r.estado === 'Pendiente_Pago') {
+                        acc += '<a href="/pago?folio=' + r.idReservacion + '" class="btn btn-emerald btn-sm me-1"><i class="bi bi-credit-card me-1"></i>Pagar</a>';
+                    }
+                    if (r.estado !== 'Cancelada') {
+                        acc += '<button type="button" class="btn btn-soft btn-sm text-danger" data-cancelar="' + r.idReservacion + '"><i class="bi bi-x-circle me-1"></i>Cancelar</button>';
+                    }
+                    return '<tr><td class="cell-main">#' + r.idReservacion + '</td>'
+                        + '<td><div class="cell-main">' + TN.esc(h.hotelNombre) + '</div><div class="cell-sub">Hab. ' + TN.esc(h.numero) + ' · ' + TN.esc(h.tipoNombre) + '</div></td>'
+                        + '<td>' + TN.fecha(r.fechaEntrada) + ' → ' + TN.fecha(r.fechaSalida) + '<div class="cell-sub">' + r.noches + ' noche(s)</div></td>'
+                        + '<td>' + r.adultos + ' ad.' + (r.ninos ? ' · ' + r.ninos + ' ni.' : '') + '</td>'
+                        + '<td>' + TN.estadoBadge(r.estado) + '</td>'
+                        + '<td class="text-end"><span class="money">' + TN.money(r.costoTotal) + '</span></td>'
+                        + '<td class="text-end text-nowrap">' + acc + '</td></tr>';
+                }).join('') + '</tbody></table></div></div>';
+
+            var cards = '<div class="res-cards">' + lista.map(function (r) {
+                var h = r.habitacion || {};
+                var acc = '';
+                if (r.estado === 'Pendiente_Pago') {
+                    acc += '<a href="/pago?folio=' + r.idReservacion + '" class="btn btn-emerald btn-sm"><i class="bi bi-credit-card me-1"></i>Pagar ahora</a>';
+                }
+                if (r.estado !== 'Cancelada') {
+                    acc += '<button type="button" class="btn btn-soft btn-sm text-danger" data-cancelar="' + r.idReservacion + '"><i class="bi bi-x-circle me-1"></i>Cancelar reservación</button>';
+                }
+                return '<div class="res-card"><div class="res-top"><div><div class="res-hotel">' + TN.esc(h.hotelNombre) + '</div>'
+                    + '<div class="res-folio">Folio #' + r.idReservacion + ' · Hab. ' + TN.esc(h.numero) + ' (' + TN.esc(h.tipoNombre) + ')</div></div>'
+                    + TN.estadoBadge(r.estado) + '</div>'
+                    + '<div class="res-fila mt-2"><span>Fechas</span><strong>' + TN.fecha(r.fechaEntrada) + ' → ' + TN.fecha(r.fechaSalida) + '</strong></div>'
+                    + '<div class="res-fila"><span>Noches / Personas</span><strong>' + r.noches + ' noche(s) · ' + r.personas + ' pers.</strong></div>'
+                    + '<div class="res-fila"><span>Total</span><strong class="money">' + TN.money(r.costoTotal) + '</strong></div>'
+                    + (acc ? '<div class="res-acciones">' + acc + '</div>' : '') + '</div>';
+            }).join('') + '</div>';
+
+            host.innerHTML = tabla + cards;
+            host.querySelectorAll('[data-cancelar]').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    var id = btn.getAttribute('data-cancelar');
+                    if (!confirm('¿Confirmas cancelar tu reservación #' + id + '?')) { return; }
+                    TN.post('/api/usuario/mis-reservaciones/' + id + '/cancelar', {}).then(function (d) {
+                        TNLayout.showFlash('exito', d.mensaje || 'Reservación cancelada.');
+                        cargar();
+                    }).catch(function (e) { TNLayout.showFlash('aviso', e.message); });
+                });
+            });
+        }).catch(function (e) { TNLayout.showFlash('error', e.message); });
+    }
+
+    TNLayout.init({ sinSidebar: true, roles: ['USUARIO', 'ADMINISTRADOR'] }).then(cargar);
+})();
+</script>
+</body>
+</html>

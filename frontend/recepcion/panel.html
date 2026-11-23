@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#0b0b0c">
+    <title>Panel de recepción · Hotel TerraNova</title>
+    <link rel="stylesheet" href="/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/css/fonts.css">
+    <link rel="stylesheet" href="/css/icons.css">
+    <link rel="stylesheet" href="/css/terranova.css">
+</head>
+<body>
+<div id="topbarHost"></div>
+<div class="app-shell">
+    <div id="sidebarHost"></div>
+
+    <main class="content">
+        <div class="page-header">
+            <div>
+                <div class="crumbs">Recepción / Mostrador</div>
+                <h1 class="page-title">Panel de recepción</h1>
+                <p class="page-sub">Llegadas pendientes, huéspedes hospedados y mapa rápido de habitaciones.</p>
+            </div>
+            <div class="d-flex gap-2 flex-wrap">
+                <a href="/recepcion/nueva-reservacion" class="btn btn-tn"><i class="bi bi-calendar-plus me-1"></i>Nueva reservación</a>
+                <a href="/recepcion/checkin" class="btn btn-soft"><i class="bi bi-key me-1"></i>Check-in</a>
+                <a href="/recepcion/checkout" class="btn btn-soft"><i class="bi bi-box-arrow-right me-1"></i>Check-out</a>
+            </div>
+        </div>
+
+        <div id="flashHost"></div>
+        <div id="panelHost"><div class="text-center py-5 text-muted">Cargando mostrador…</div></div>
+    </main>
+</div>
+
+<script src="/js/bootstrap.bundle.min.js"></script>
+<script src="/js/config.js"></script>
+<script src="/js/api.js"></script>
+<script src="/js/terranova.js"></script>
+<script src="/js/chat-widget.js"></script>
+<script src="/js/layout.js"></script>
+<script>
+(function () {
+    function cargar() {
+        TN.get('/api/recepcion/panel').then(function (d) {
+            var lleg = d.llegadas || [], est = d.estancias || [], habs = d.habitaciones || [];
+            var llegHtml = !lleg.length
+                ? '<div class="empty-state py-4"><i class="bi bi-calendar-check"></i>No hay llegadas pendientes hoy.</div>'
+                : '<div class="table-wrap"><table class="table table-tn align-middle"><thead><tr><th>Folio</th><th>Huésped</th><th>Habitación</th><th>Fechas</th><th>Estado</th><th class="text-end">Acción</th></tr></thead><tbody>'
+                  + lleg.map(function (r) {
+                      var h = r.habitacion || {};
+                      return '<tr><td class="cell-main">#' + r.idReservacion + '</td>'
+                          + '<td><div class="cell-main">' + TN.esc(r.nombreHuesped) + '</div><div class="cell-sub">' + TN.esc(r.telefono) + '</div></td>'
+                          + '<td>' + TN.esc(h.hotelNombre) + '<div class="cell-sub">Hab. ' + TN.esc(h.numero) + ' · ' + TN.esc(h.tipoNombre) + '</div></td>'
+                          + '<td>' + TN.fecha(r.fechaEntrada) + ' → ' + TN.fecha(r.fechaSalida) + '</td>'
+                          + '<td>' + TN.estadoBadge(r.estado) + '</td>'
+                          + '<td class="text-end"><a href="/recepcion/checkin-detalle?id=' + r.idReservacion + '" class="btn btn-emerald btn-sm"><i class="bi bi-key me-1"></i>Check-in</a></td></tr>';
+                  }).join('') + '</tbody></table></div>';
+
+            var estHtml = !est.length
+                ? '<div class="empty-state py-4"><i class="bi bi-house-heart"></i>No hay huéspedes registrados en estancia activa.</div>'
+                : '<div class="table-wrap"><table class="table table-tn align-middle"><thead><tr><th>Estancia</th><th>Huésped</th><th>Habitación</th><th>Entrada</th><th>Salida prevista</th><th class="text-end">Acción</th></tr></thead><tbody>'
+                  + est.map(function (e) {
+                      var h = e.habitacion || {};
+                      return '<tr><td class="cell-main">#' + e.idEstancia + '</td>'
+                          + '<td><div class="cell-main">' + TN.esc(e.huesped) + '</div><div class="cell-sub">' + TN.esc(e.identificacion) + '</div></td>'
+                          + '<td>' + TN.esc(h.hotelNombre) + ' · Hab. ' + TN.esc(h.numero) + '</td>'
+                          + '<td>' + TN.fechaHora(e.fechaEntrada) + '</td>'
+                          + '<td>' + TN.fecha(e.fechaSalidaPrevista) + (e.vencida ? ' <span class="badge bg-danger">Vencida</span>' : '') + '</td>'
+                          + '<td class="text-end text-nowrap"><a href="/recepcion/folio?id=' + e.idEstancia + '" class="btn btn-soft btn-sm me-1">Folio</a>'
+                          + '<a href="/recepcion/checkout-form?id=' + e.idEstancia + '" class="btn btn-tn btn-sm">Check-out</a></td></tr>';
+                  }).join('') + '</tbody></table></div>';
+
+            var mapaHtml = '<div class="mapa-hab">' + habs.map(function (h) {
+                var btn = '';
+                if (h.estado === 'Disponible') {
+                    btn = '<button type="button" class="btn btn-soft btn-sm w-100 mt-2" data-mant="' + h.idHabitacion + '">A mantenimiento</button>';
+                } else if (h.estado === 'Mantenimiento') {
+                    btn = '<button type="button" class="btn btn-emerald btn-sm w-100 mt-2" data-disp="' + h.idHabitacion + '">Marcar disponible</button>';
+                }
+                return '<div class="hab-tile hab-' + TN.esc(h.estadoCss) + '">'
+                    + '<div class="d-flex justify-content-between align-items-start"><div class="num">' + TN.esc(h.numero) + '</div>' + TN.estadoBadge(h.estado) + '</div>'
+                    + '<div class="sub mt-1">' + TN.esc(h.hotelNombre) + ' · ' + TN.esc(h.tipoNombre) + '</div>' + btn + '</div>';
+            }).join('') + '</div>';
+
+            document.getElementById('panelHost').innerHTML = ''
+                + '<div class="mostrador-kpis">'
+                + '  <div class="mostrador-kpi k-dorado"><small>Llegadas hoy</small><strong>' + lleg.length + '</strong></div>'
+                + '  <div class="mostrador-kpi"><small>Huéspedes en hotel</small><strong>' + est.length + '</strong></div>'
+                + '  <div class="mostrador-kpi"><small>Disponibles</small><strong>' + d.nDisponibles + '</strong></div>'
+                + '  <div class="mostrador-kpi"><small>Ocupadas</small><strong>' + d.nOcupadas + '</strong></div>'
+                + '  <div class="mostrador-kpi"><small>Mantenimiento</small><strong>' + d.nMantenimiento + '</strong></div>'
+                + '</div>'
+                + '<div class="card-tn mb-4"><div class="card-head"><h5><i class="bi bi-key me-2 text-primary"></i>Llegadas pendientes</h5><a href="/recepcion/checkin" class="btn btn-soft btn-sm">Buscar reservación</a></div>' + llegHtml + '</div>'
+                + '<div class="card-tn mb-4"><div class="card-head"><h5><i class="bi bi-people me-2 text-primary"></i>Huéspedes en el hotel</h5><a href="/recepcion/checkout" class="btn btn-soft btn-sm">Ir a Check-out</a></div>' + estHtml + '</div>'
+                + '<div class="card-tn"><div class="card-head"><h5><i class="bi bi-grid-3x3-gap me-2 text-primary"></i>Mapa rápido de habitaciones</h5><a href="/recepcion/estados" class="btn btn-soft btn-sm">Ver tabla completa</a></div>' + mapaHtml + '</div>';
+
+            document.querySelectorAll('[data-mant]').forEach(function (b) {
+                b.addEventListener('click', function () {
+                    TN.post('/api/recepcion/estados/' + b.getAttribute('data-mant') + '/mantenimiento', {}).then(function (res) {
+                        TNLayout.showFlash('exito', res.mensaje); cargar();
+                    }).catch(function (err) { TNLayout.showFlash('aviso', err.message); });
+                });
+            });
+            document.querySelectorAll('[data-disp]').forEach(function (b) {
+                b.addEventListener('click', function () {
+                    TN.post('/api/recepcion/estados/' + b.getAttribute('data-disp') + '/disponible', {}).then(function (res) {
+                        TNLayout.showFlash('exito', res.mensaje); cargar();
+                    }).catch(function (err) { TNLayout.showFlash('aviso', err.message); });
+                });
+            });
+        }).catch(function (err) { TNLayout.showFlash('error', err.message); });
+    }
+
+    TNLayout.init({ activo: 'h-panel', roles: ['RECEPCIONISTA', 'ADMINISTRADOR'] }).then(cargar);
+})();
+</script>
+</body>
+</html>

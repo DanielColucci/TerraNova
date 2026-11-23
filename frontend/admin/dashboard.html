@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#0b0b0c">
+    <title>Panel general · Hotel TerraNova</title>
+    <link rel="stylesheet" href="/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/css/fonts.css">
+    <link rel="stylesheet" href="/css/icons.css">
+    <link rel="stylesheet" href="/css/terranova.css">
+</head>
+<body>
+<div id="topbarHost"></div>
+<div class="app-shell">
+    <div id="sidebarHost"></div>
+
+    <main class="content">
+        <div class="page-header">
+            <div>
+                <h1 class="page-title">Panel general</h1>
+                <p class="page-sub">Un vistazo rápido a la cadena TerraNova. Toca una tarjeta para ver el detalle.</p>
+            </div>
+            <button type="button" id="btnActualizar" class="btn btn-soft"><i class="bi bi-arrow-clockwise me-1"></i> Actualizar</button>
+        </div>
+
+        <div id="flashHost"></div>
+        <div id="adminHost"><div class="text-center py-5 text-muted">Cargando panel general…</div></div>
+    </main>
+</div>
+
+<script src="/js/bootstrap.bundle.min.js"></script>
+<script src="/js/config.js"></script>
+<script src="/js/api.js"></script>
+<script src="/js/terranova.js"></script>
+<script src="/js/chat-widget.js"></script>
+<script src="/js/layout.js"></script>
+<script>
+(function () {
+    function cargar() {
+        TN.get('/api/admin/dashboard').then(function (d) {
+            var r = d.resumen, habs = d.habitaciones || [], hoteles = d.hoteles || [], disp = d.disponiblesPorHotel || [];
+            var tot = r.habitacionesTotal || 0;
+            var barra = tot === 0
+                ? '<div class="empty-state py-3"><i class="bi bi-door-closed"></i>Aún no hay habitaciones registradas.<div class="mt-3"><a href="/habitaciones/form" class="btn btn-tn">Registrar habitación</a></div></div>'
+                : '<div class="ocupacion-barra"><span style="background:var(--tn-emerald);width:' + (r.disponibles * 100 / tot) + '%"></span>'
+                  + '<span style="background:var(--tn-rose);width:' + (r.ocupadas * 100 / tot) + '%"></span>'
+                  + '<span style="background:var(--tn-amber);width:' + (r.mantenimiento * 100 / tot) + '%"></span></div>'
+                  + '<div class="ocupacion-leyenda">'
+                  + '<span><i style="background:var(--tn-emerald)"></i>Disponibles <strong>' + r.disponibles + '</strong></span>'
+                  + '<span><i style="background:var(--tn-rose)"></i>Ocupadas <strong>' + r.ocupadas + '</strong></span>'
+                  + '<span><i style="background:var(--tn-amber)"></i>Mantenimiento <strong>' + r.mantenimiento + '</strong></span></div>';
+
+            var gridHabs = !habs.length ? '' : ''
+                + '<div class="collapse" id="detalleHabitaciones"><hr class="my-4">'
+                + '<div class="d-flex flex-wrap gap-2 mb-3">'
+                + '  <button type="button" class="chip active" data-estado-filtro="todos">Todas</button>'
+                + '  <button type="button" class="chip" data-estado-filtro="disponible">Disponibles</button>'
+                + '  <button type="button" class="chip" data-estado-filtro="ocupada">Ocupadas</button>'
+                + '  <button type="button" class="chip" data-estado-filtro="mantenimiento">Mantenimiento</button></div>'
+                + '<div class="rooms-scroll"><div class="row row-cols-2 row-cols-md-4 row-cols-xxl-6 g-2">'
+                + habs.map(function (h) {
+                    return '<div class="col" data-estado="' + TN.esc(h.estadoCss) + '"><a href="/habitaciones/detalle?id=' + h.idHabitacion + '" class="room-card estado-' + TN.esc(h.estadoCss) + (h.hotelActivo ? '' : ' hotel-inactivo') + '">'
+                        + '<div class="room-stripe"></div><div class="p-2 text-center">'
+                        + '<div class="room-hotel text-truncate">' + TN.esc(h.hotelNombre) + '</div>'
+                        + '<div class="room-num">' + TN.esc(h.numero) + '</div>'
+                        + '<div class="small text-muted mb-1">' + TN.esc(h.tipoNombre) + ' · Piso ' + h.piso + '</div>'
+                        + TN.estadoBadge(h.estado) + '</div></a></div>';
+                }).join('') + '</div></div></div>';
+
+            var detHoteles = !hoteles.length ? '<div class="text-muted small mt-3">Aún no hay hoteles registrados.</div>'
+                : hoteles.map(function (h) {
+                    return '<div class="d-flex justify-content-between align-items-center py-2 border-bottom"><div>'
+                        + '<a href="/hoteles/detalle?id=' + h.idHotel + '" class="fw-semibold text-decoration-none text-dark">' + TN.esc(h.nombre) + '</a>'
+                        + '<div class="cell-sub">' + TN.esc(h.ciudad) + ' · ' + (h.totalHabitaciones || 0) + ' hab.</div></div>'
+                        + TN.activoBadge(h.activo) + '</div>';
+                }).join('');
+
+            var chipsDisp = disp.length
+                ? '<div class="mt-3"><div class="small text-muted mb-2">Habitaciones disponibles por hotel</div><div class="d-flex flex-wrap gap-2">'
+                  + disp.map(function (x) { return '<span class="estado-badge estado-disponible"><span class="dot"></span>' + TN.esc(x.hotel) + ': ' + x.disponibles + '</span>'; }).join('')
+                  + '</div></div>'
+                : '';
+
+            document.getElementById('adminHost').innerHTML = ''
+                + '<div class="row g-3 mb-4">'
+                + '  <div class="col-6 col-xl-3"><a href="/hoteles/lista" class="kpi-link"><div class="kpi blue"><div class="kpi-icon"><i class="bi bi-building"></i></div><div class="kpi-label">Hoteles activos</div><div class="kpi-value"><span data-contar="' + r.hotelesActivos + '">' + r.hotelesActivos + '</span> <small>/ ' + r.hotelesTotal + '</small></div><span class="kpi-mas">Ver hoteles <i class="bi bi-arrow-right"></i></span></div></a></div>'
+                + '  <div class="col-6 col-xl-3"><a href="/habitaciones/lista" class="kpi-link"><div class="kpi green"><div class="kpi-icon"><i class="bi bi-door-open"></i></div><div class="kpi-label">Disponibles</div><div class="kpi-value"><span data-contar="' + r.disponibles + '">' + r.disponibles + '</span> <small>/ ' + r.habitacionesTotal + '</small></div><span class="kpi-mas">Ver habitaciones <i class="bi bi-arrow-right"></i></span></div></a></div>'
+                + '  <div class="col-6 col-xl-3"><a href="/recepcion/estados" class="kpi-link"><div class="kpi rose"><div class="kpi-icon"><i class="bi bi-person-fill-lock"></i></div><div class="kpi-label">Ocupadas</div><div class="kpi-value" data-contar="' + r.ocupadas + '">' + r.ocupadas + '</div><span class="kpi-mas">Ver estados <i class="bi bi-arrow-right"></i></span></div></a></div>'
+                + '  <div class="col-6 col-xl-3"><a href="/recepcion/estados" class="kpi-link"><div class="kpi amber"><div class="kpi-icon"><i class="bi bi-tools"></i></div><div class="kpi-label">En mantenimiento</div><div class="kpi-value" data-contar="' + r.mantenimiento + '">' + r.mantenimiento + '</div><span class="kpi-mas">Ver estados <i class="bi bi-arrow-right"></i></span></div></a></div>'
+                + '</div>'
+                + '<div class="card-tn mb-4 panel-expandible"><div class="card-head"><h5><i class="bi bi-grid-3x3-gap-fill me-2 text-primary"></i>Estado de las habitaciones</h5>'
+                + '  <div class="d-flex flex-wrap gap-2"><button type="button" class="btn btn-soft btn-sm ver-mas-btn" data-bs-toggle="collapse" data-bs-target="#detalleHabitaciones" aria-expanded="false">Ver habitaciones <i class="bi bi-chevron-down"></i></button>'
+                + '  <a href="/habitaciones/lista" class="btn btn-soft btn-sm">Ir a Habitaciones <i class="bi bi-arrow-right ms-1"></i></a></div></div>'
+                + '  <div class="card-body-tn">' + barra + gridHabs + '</div></div>'
+                + '<div class="card-tn mb-4 panel-expandible"><div class="card-head"><h5><i class="bi bi-building me-2 text-primary"></i>Hoteles de la cadena</h5>'
+                + '  <div class="d-flex flex-wrap gap-2"><button type="button" class="btn btn-soft btn-sm ver-mas-btn" data-bs-toggle="collapse" data-bs-target="#detalleHoteles" aria-expanded="false">Ver detalle <i class="bi bi-chevron-down"></i></button>'
+                + '  <a href="/hoteles/lista" class="btn btn-soft btn-sm">Administrar <i class="bi bi-arrow-right ms-1"></i></a></div></div>'
+                + '  <div class="card-body-tn"><div class="text-secondary small">' + r.hotelesActivos + ' de ' + r.hotelesTotal + ' hoteles activos</div><div class="collapse" id="detalleHoteles">' + detHoteles + chipsDisp + '</div></div></div>'
+                + '<h6 class="fw-bold mb-3">Ir a…</h6><div class="row g-3">'
+                + '  <div class="col-6 col-lg-4"><a href="/reservaciones/lista" class="atajo"><span class="atajo-ico"><i class="bi bi-calendar-check"></i></span><span><strong>Reservaciones</strong><small>Consultar y administrar</small></span></a></div>'
+                + '  <div class="col-6 col-lg-4"><a href="/reservaciones/form" class="atajo"><span class="atajo-ico"><i class="bi bi-calendar-plus"></i></span><span><strong>Nueva reservación</strong><small>Registrar llegada</small></span></a></div>'
+                + '  <div class="col-6 col-lg-4"><a href="/recepcion/checkout" class="atajo"><span class="atajo-ico"><i class="bi bi-box-arrow-right"></i></span><span><strong>Check-out</strong><small>Registrar salida</small></span></a></div>'
+                + '  <div class="col-6 col-lg-4"><a href="/busqueda" class="atajo"><span class="atajo-ico"><i class="bi bi-funnel"></i></span><span><strong>Búsqueda avanzada</strong><small>Filtrar habitaciones</small></span></a></div>'
+                + '  <div class="col-6 col-lg-4"><a href="/gerente/dashboard" class="atajo"><span class="atajo-ico"><i class="bi bi-graph-up-arrow"></i></span><span><strong>Panel gerencial</strong><small>Ocupación e ingresos</small></span></a></div>'
+                + '  <div class="col-6 col-lg-4"><a href="/habitaciones/form" class="atajo"><span class="atajo-ico"><i class="bi bi-plus-circle"></i></span><span><strong>Nueva habitación</strong><small>Registrar en un hotel</small></span></a></div>'
+                + '</div>';
+            TNUi.bind();
+        }).catch(function (err) {
+            TNLayout.showFlash('error', err.message || 'No se pudo cargar el panel.');
+        });
+    }
+
+    document.getElementById('btnActualizar').addEventListener('click', cargar);
+    TNLayout.init({ activo: 'dashboard', roles: ['ADMINISTRADOR'] }).then(cargar);
+})();
+</script>
+</body>
+</html>

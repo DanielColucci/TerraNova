@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#0b0b0c">
+    <title>Asistente de IA · Hotel TerraNova</title>
+    <link rel="stylesheet" href="/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/css/fonts.css">
+    <link rel="stylesheet" href="/css/icons.css">
+    <link rel="stylesheet" href="/css/terranova.css">
+</head>
+<body>
+<div id="topbarHost"></div>
+<div class="app-shell">
+    <div id="sidebarHost"></div>
+
+    <main class="content">
+        <div class="page-header">
+            <div>
+                <h1 class="page-title" id="asistTitulo">Asistente de IA</h1>
+                <p class="page-sub" id="asistSub">Consulta datos reales y gestiona reservaciones en lenguaje natural. Antes de guardar, modificar, cancelar
+                    o eliminar algo siempre te muestra un resumen y espera tu «sí».</p>
+            </div>
+            <div class="d-flex gap-2 flex-wrap" id="asistAcciones"></div>
+        </div>
+
+        <div id="flashHost"></div>
+
+        <div id="asistente">
+            <div class="chat-layout">
+                <div class="card-tn">
+                    <div class="card-head">
+                        <h6 class="m-0"><i class="bi bi-chat-left-text me-2 text-primary"></i>Mis chats</h6>
+                        <button type="button" class="btn btn-tn btn-sm" id="btnNuevoChat"><i class="bi bi-plus-lg me-1"></i>Nuevo</button>
+                    </div>
+                    <div class="chat-lista" id="listaChats" aria-label="Lista de conversaciones"></div>
+                </div>
+
+                <div class="card-tn">
+                    <div class="card-head">
+                        <h5 class="m-0 text-truncate" id="tituloChat"><i class="bi bi-chat-dots me-2 text-primary"></i>Conversación</h5>
+                        <div class="btn-group" role="group" aria-label="Modelo de IA">
+                            <input type="radio" class="btn-check" name="modelo" id="modeloGemini" value="gemini" checked>
+                            <label class="btn btn-soft btn-sm" for="modeloGemini"><i class="bi bi-cloud me-1"></i>Gemini</label>
+                            <input type="radio" class="btn-check" name="modelo" id="modeloOllama" value="ollama">
+                            <label class="btn btn-soft btn-sm" for="modeloOllama"><i class="bi bi-pc-display me-1"></i>Ollama (local)</label>
+                        </div>
+                    </div>
+
+                    <div class="card-body-tn">
+                        <div id="historial" class="chat-historial" aria-live="polite">
+                            <div class="chat-vacio" id="chatVacio">
+                                <i class="bi bi-stars"></i>
+                                Escribe un mensaje o elige una sugerencia.
+                                <div class="sugerencias-vacio" id="asistSugs">
+                                    <button type="button" class="chip sugerencia">Quiero reservar una habitación</button>
+                                    <button type="button" class="chip sugerencia">Muéstrame las reservaciones</button>
+                                    <button type="button" class="chip sugerencia">¿Qué habitaciones disponibles hay para 4 personas?</button>
+                                    <button type="button" class="chip sugerencia">¿Qué hoteles tiene la cadena?</button>
+                                    <button type="button" class="chip sugerencia">¿Cuál es la ocupación global y el costo de oportunidad?</button>
+                                    <button type="button" class="chip sugerencia">¿Qué tipos de habitación existen y cuánto cuestan?</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <form id="formPregunta" class="chat-form mt-3" novalidate>
+                            <textarea id="pregunta" class="form-control" rows="2" maxlength="1000" aria-label="Tu mensaje"
+                                      placeholder="Escribe tu mensaje… (Enter envía, Shift+Enter salto de línea)"></textarea>
+                            <button type="submit" class="btn btn-tn" id="btnEnviar"><i class="bi bi-send me-1"></i>Enviar</button>
+                        </form>
+                        <div class="form-hint mt-2">Cada chat tiene su propia memoria. Los modelos locales pueden tardar; verás el tiempo transcurrido.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script src="/js/bootstrap.bundle.min.js"></script>
+<script src="/js/config.js"></script>
+<script src="/js/api.js"></script>
+<script src="/js/terranova.js"></script>
+<script src="/js/layout.js"></script>
+<script src="/js/asistente.js"></script>
+<script>
+TNLayout.init({ activo: 'asistente', roles: ['ADMINISTRADOR', 'USUARIO', 'GERENTE', 'RECEPCIONISTA'] })
+    .then(function (user) { TNAsistente.init(user); });
+</script>
+</body>
+</html>

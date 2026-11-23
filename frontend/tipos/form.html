@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#0b0b0c">
+    <title>Tipo de habitación · Hotel TerraNova</title>
+    <link rel="stylesheet" href="/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/css/fonts.css">
+    <link rel="stylesheet" href="/css/icons.css">
+    <link rel="stylesheet" href="/css/terranova.css">
+</head>
+<body>
+<div id="topbarHost"></div>
+<div class="app-shell">
+    <div id="sidebarHost"></div>
+    <main class="content">
+        <div class="page-header">
+            <div>
+                <div class="crumbs"><a href="/tipos/lista">Tipos</a> / <span id="crumbAcc">Nuevo</span></div>
+                <h1 class="page-title" id="titForm">Nuevo tipo de habitación</h1>
+            </div>
+            <a href="/tipos/lista" class="btn btn-soft"><i class="bi bi-arrow-left me-1"></i>Volver</a>
+        </div>
+        <div id="flashHost"></div>
+        <form id="formTipo" class="card-tn" style="max-width:700px">
+            <div class="card-body-tn">
+                <div class="row g-3">
+                    <div class="col-md-6"><label class="form-label" for="nombre">Nombre</label><input id="nombre" class="form-control" maxlength="60" required></div>
+                    <div class="col-md-3"><label class="form-label" for="capacidad">Capacidad</label><input id="capacidad" type="number" min="1" max="20" value="2" class="form-control" required></div>
+                    <div class="col-md-3"><label class="form-label" for="precioBase">Precio base</label><input id="precioBase" type="number" step="0.01" min="0" class="form-control" required></div>
+                    <div class="col-12"><label class="form-label" for="descripcion">Descripción</label><textarea id="descripcion" class="form-control" rows="3" maxlength="255" required></textarea></div>
+                </div>
+                <div class="mt-4 d-flex gap-2">
+                    <button type="submit" class="btn btn-tn"><i class="bi bi-check-lg me-1"></i>Guardar</button>
+                    <a href="/tipos/lista" class="btn btn-soft">Cancelar</a>
+                </div>
+            </div>
+        </form>
+    </main>
+</div>
+<script src="/js/bootstrap.bundle.min.js"></script>
+<script src="/js/config.js"></script>
+<script src="/js/api.js"></script>
+<script src="/js/terranova.js"></script>
+<script src="/js/chat-widget.js"></script>
+<script src="/js/layout.js"></script>
+<script>
+(function () {
+    var id = TN.qs('id');
+    TNLayout.init({ activo: 'tipos', roles: ['ADMINISTRADOR'] }).then(function () {
+        if (!id) { return; }
+        document.getElementById('crumbAcc').textContent = 'Editar';
+        document.getElementById('titForm').textContent = 'Editar tipo de habitación';
+        return TN.get('/api/tipos/' + encodeURIComponent(id)).then(function (d) {
+            var t = d.tipo;
+            document.getElementById('nombre').value = t.nombre || '';
+            document.getElementById('capacidad').value = t.capacidad;
+            document.getElementById('precioBase').value = t.precioBase;
+            document.getElementById('descripcion').value = t.descripcion || '';
+        });
+    }).catch(function (e) { TNLayout.showFlash('error', e.message); });
+
+    document.getElementById('formTipo').addEventListener('submit', function (e) {
+        e.preventDefault();
+        var btn = this.querySelector('button[type=submit]'); btn.disabled = true;
+        var body = {
+            nombre: document.getElementById('nombre').value.trim(),
+            capacidad: parseInt(document.getElementById('capacidad').value, 10),
+            precioBase: parseFloat(document.getElementById('precioBase').value),
+            descripcion: document.getElementById('descripcion').value.trim()
+        };
+        var req = id ? TN.put('/api/tipos/' + encodeURIComponent(id), body) : TN.post('/api/tipos', body);
+        req.then(function (r) {
+            TN.flash('exito', r.mensaje);
+            location.href = '/tipos/lista';
+        }).catch(function (err) { btn.disabled = false; TNLayout.showFlash('aviso', err.message); });
+    });
+})();
+</script>
+</body>
+</html>

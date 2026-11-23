@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#0b0b0c">
+    <title>Nueva reservación en mostrador · Hotel TerraNova</title>
+    <link rel="stylesheet" href="/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/css/fonts.css">
+    <link rel="stylesheet" href="/css/icons.css">
+    <link rel="stylesheet" href="/css/terranova.css">
+</head>
+<body>
+<div id="topbarHost"></div>
+<div class="app-shell">
+    <div id="sidebarHost"></div>
+
+    <main class="content">
+        <div class="page-header">
+            <div>
+                <div class="crumbs"><a href="/recepcion/panel">Recepción</a> / Nueva reservación</div>
+                <h1 class="page-title">Nueva reservación en mostrador</h1>
+                <p class="page-sub">Registra un huésped que llega a recepción. Si la entrada es hoy, te llevará directo al check-in.</p>
+            </div>
+            <a href="/recepcion/panel" class="btn btn-soft"><i class="bi bi-arrow-left me-1"></i>Panel de recepción</a>
+        </div>
+
+        <div id="flashHost"></div>
+
+        <form id="formRes" class="card-tn mb-4">
+            <div class="card-body-tn">
+                <div class="row g-3">
+                    <div class="col-12">
+                        <label class="form-label" for="idHabitacion">Habitación</label>
+                        <select id="idHabitacion" class="form-select" required></select>
+                    </div>
+                    <div class="col-md-6"><label class="form-label" for="nombreHuesped">Nombre del huésped</label><input id="nombreHuesped" class="form-control" maxlength="120" required></div>
+                    <div class="col-md-6"><label class="form-label" for="telefono">Teléfono</label><input id="telefono" class="form-control" maxlength="20" required></div>
+                    <div class="col-md-6"><label class="form-label" for="correo">Correo (opcional)</label><input id="correo" type="email" class="form-control" maxlength="120"></div>
+                    <div class="col-md-6"><label class="form-label" for="ciudadProcedencia">Ciudad de procedencia (opcional)</label><input id="ciudadProcedencia" class="form-control" maxlength="80"></div>
+                    <div class="col-md-3"><label class="form-label" for="fechaEntrada">Entrada</label><input id="fechaEntrada" type="date" class="form-control" required></div>
+                    <div class="col-md-3"><label class="form-label" for="fechaSalida">Salida</label><input id="fechaSalida" type="date" class="form-control" required></div>
+                    <div class="col-md-3"><label class="form-label" for="adultos">Adultos</label><input id="adultos" type="number" min="1" max="20" value="2" class="form-control" required></div>
+                    <div class="col-md-3"><label class="form-label" for="ninos">Niños</label><input id="ninos" type="number" min="0" max="20" value="0" class="form-control" required></div>
+                </div>
+                <div class="mt-4 d-flex gap-2">
+                    <button type="submit" class="btn btn-tn"><i class="bi bi-check-lg me-1"></i>Guardar reservación</button>
+                    <a href="/recepcion/panel" class="btn btn-soft">Cancelar</a>
+                </div>
+            </div>
+        </form>
+
+        <div id="proximasBox"></div>
+    </main>
+</div>
+
+<script src="/js/bootstrap.bundle.min.js"></script>
+<script src="/js/config.js"></script>
+<script src="/js/api.js"></script>
+<script src="/js/terranova.js"></script>
+<script src="/js/chat-widget.js"></script>
+<script src="/js/layout.js"></script>
+<script>
+(function () {
+    TNLayout.init({ activo: 'reservaciones', roles: ['RECEPCIONISTA', 'ADMINISTRADOR'] }).then(function () {
+        return TN.get('/api/recepcion/reservaciones/opciones');
+    }).then(function (d) {
+        var sel = document.getElementById('idHabitacion');
+        sel.innerHTML = '<option value="">Selecciona una habitación…</option>' + (d.habitaciones || []).map(function (o) {
+            return '<option value="' + o.id + '">' + TN.esc(o.etiqueta) + '</option>';
+        }).join('');
+        var hoy = d.hoy || new Date().toISOString().slice(0, 10);
+        var man = new Date(hoy + 'T12:00:00'); man.setDate(man.getDate() + 1);
+        document.getElementById('fechaEntrada').value = hoy;
+        document.getElementById('fechaSalida').value = man.toISOString().slice(0, 10);
+
+        var prox = d.proximasLiberaciones || [];
+        if (prox.length) {
+            document.getElementById('proximasBox').innerHTML = '<div class="card-tn"><div class="card-head"><h6>Habitaciones no disponibles hoy (próximas liberaciones)</h6></div>'
+                + '<div class="table-wrap"><table class="table table-tn align-middle"><thead><tr><th>Hotel</th><th>Hab.</th><th>Tipo</th><th>Estado</th><th>Detalle</th></tr></thead><tbody>'
+                + prox.map(function (p) {
+                    return '<tr><td>' + TN.esc(p.hotel) + '</td><td class="cell-main">' + TN.esc(p.numero) + '</td><td>' + TN.esc(p.tipo) + '</td><td>' + TN.estadoBadge(p.estado) + '</td><td class="small text-muted">' + TN.esc(p.sugerencia) + '</td></tr>';
+                }).join('') + '</tbody></table></div></div>';
+        }
+    }).catch(function (err) { TNLayout.showFlash('error', err.message); });
+
+    document.getElementById('formRes').addEventListener('submit', function (e) {
+        e.preventDefault();
+        var btn = this.querySelector('button[type=submit]'); btn.disabled = true;
+        TN.post('/api/recepcion/reservaciones', {
+            idHabitacion: Number(document.getElementById('idHabitacion').value) || null,
+            nombreHuesped: document.getElementById('nombreHuesped').value.trim(),
+            telefono: document.getElementById('telefono').value.trim(),
+            correo: document.getElementById('correo').value.trim() || null,
+            ciudadProcedencia: document.getElementById('ciudadProcedencia').value.trim() || null,
+            fechaEntrada: document.getElementById('fechaEntrada').value,
+            fechaSalida: document.getElementById('fechaSalida').value,
+            adultos: parseInt(document.getElementById('adultos').value, 10) || 1,
+            ninos: parseInt(document.getElementById('ninos').value, 10) || 0
+        }).then(function (res) {
+            TN.flash('exito', res.mensaje);
+            location.href = res.llegaHoy ? ('/recepcion/checkin-detalle?id=' + res.reservacion.idReservacion) : '/recepcion/panel';
+        }).catch(function (err) {
+            btn.disabled = false;
+            TNLayout.showFlash('aviso', err.message);
+        });
+    });
+})();
+</script>
+</body>
+</html>

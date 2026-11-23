@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Recibo de pago</title></head>
+<body style="margin:0;padding:0;background:#efe9df;font-family:Georgia,'Times New Roman',serif;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#efe9df;padding:24px 12px;">
+<tr><td align="center">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:22px;overflow:hidden;">
+    <tr><td style="background:#0b0b0c;padding:28px 24px;text-align:center;">
+      <div style="display:inline-block;width:46px;height:46px;line-height:46px;border-radius:50%;background:#e2d5c3;color:#0b0b0c;font-weight:bold;font-size:17px;">TN</div>
+      <div style="color:#e2d5c3;font-size:22px;letter-spacing:1px;margin-top:10px;">TerraNova</div>
+      <div style="color:#c5a880;font-size:12px;letter-spacing:3px;text-transform:uppercase;margin-top:2px;">Recibo de pago</div>
+    </td></tr>
+    <tr><td style="padding:30px 28px 8px;color:#1d1d1f;">
+      <h1 style="margin:0 0 8px;font-size:23px;font-weight:600;color:#0b0b0c;">¡Pago recibido, <span th:text="${r.nombre()}">Huésped</span>!</h1>
+      <p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:#3d3d40;">Tu reservación está <strong>confirmada</strong>. Estos son los datos de tu estancia:</p>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;color:#1d1d1f;border-top:1px solid #e8e0d2;">
+        <tr><td style="padding:10px 0;border-bottom:1px solid #f0eadf;color:#6e6e73;">Folio</td><td align="right" style="border-bottom:1px solid #f0eadf;"><strong>#<span th:text="${r.folio()}">1</span></strong></td></tr>
+        <tr><td style="padding:10px 0;border-bottom:1px solid #f0eadf;color:#6e6e73;">Hotel</td><td align="right" style="border-bottom:1px solid #f0eadf;" th:text="${r.hotel()}">Hotel</td></tr>
+        <tr><td style="padding:10px 0;border-bottom:1px solid #f0eadf;color:#6e6e73;">Habitación</td><td align="right" style="border-bottom:1px solid #f0eadf;" th:text="${r.habitacion()}">101</td></tr>
+        <tr><td style="padding:10px 0;border-bottom:1px solid #f0eadf;color:#6e6e73;">Entrada</td><td align="right" style="border-bottom:1px solid #f0eadf;" th:text="${#temporals.format(r.entrada(), 'dd/MM/yyyy')}">01/01/2026</td></tr>
+        <tr><td style="padding:10px 0;border-bottom:1px solid #f0eadf;color:#6e6e73;">Salida</td><td align="right" style="border-bottom:1px solid #f0eadf;" th:text="${#temporals.format(r.salida(), 'dd/MM/yyyy')}">03/01/2026</td></tr>
+        <tr><td style="padding:10px 0;border-bottom:1px solid #f0eadf;color:#6e6e73;">Noches</td><td align="right" style="border-bottom:1px solid #f0eadf;" th:text="${r.noches()}">2</td></tr>
+        <tr><td style="padding:10px 0;border-bottom:1px solid #f0eadf;color:#6e6e73;">Tarjeta</td><td align="right" style="border-bottom:1px solid #f0eadf;"><span th:text="${r.marca()}">Visa</span> •••• <span th:text="${r.ultimos4()}">4242</span></td></tr>
+        <tr><td style="padding:10px 0;border-bottom:1px solid #f0eadf;color:#6e6e73;">Referencia</td><td align="right" style="border-bottom:1px solid #f0eadf;font-family:monospace;" th:text="${r.referencia()}">TN-000000-AAAAAA</td></tr>
+        <tr><td style="padding:14px 0;font-size:16px;"><strong>Total pagado</strong></td><td align="right" style="font-size:20px;color:#8d7149;"><strong th:text="'$' + ${#numbers.formatDecimal(r.total(), 1, 'COMMA', 2, 'POINT')}">$2,400.00</strong></td></tr>
+      </table>
+      <p style="text-align:center;margin:24px 0 8px;"><a th:href="${enlace}" href="#" style="display:inline-block;background:#0b0b0c;color:#e2d5c3;text-decoration:none;padding:13px 30px;border-radius:999px;font-size:15px;font-weight:bold;">Ver mis reservaciones</a></p>
+      <p style="margin:12px 0 0;font-size:12px;color:#9a9a9f;">Pago simulado con fines académicos: no se realizó ningún cargo real.</p>
+    </td></tr>
+    <tr><td style="padding:18px 28px 28px;"><div style="border-top:1px solid #e8e0d2;padding-top:14px;font-size:12px;color:#9a9a9f;text-align:center;">Hotel TerraNova · Mensaje automático, no respondas a este correo.</div></td></tr>
+  </table>
+</td></tr></table>
+</body></html>

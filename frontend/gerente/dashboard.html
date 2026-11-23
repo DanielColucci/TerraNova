@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#0b0b0c">
+    <title>Panel gerencial · Hotel TerraNova</title>
+    <link rel="stylesheet" href="/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/css/fonts.css">
+    <link rel="stylesheet" href="/css/icons.css">
+    <link rel="stylesheet" href="/css/terranova.css">
+</head>
+<body>
+<div id="topbarHost"></div>
+<div class="app-shell">
+    <div id="sidebarHost"></div>
+
+    <main class="content">
+        <div class="page-header">
+            <div>
+                <div class="crumbs">Gerencia / Panel</div>
+                <h1 class="page-title">Panel gerencial</h1>
+                <p class="page-sub">Ingresos, ocupación y reservaciones de la cadena para tomar decisiones.</p>
+            </div>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <span class="small text-muted"><i class="bi bi-clock me-1"></i>Actualizado <span id="grHora">--:--:--</span></span>
+                <a id="btnVerInforme" href="/gerente/informes" class="btn btn-tn">
+                    <i class="bi bi-file-earmark-text me-1"></i>Ver informe completo</a>
+            </div>
+        </div>
+
+        <div id="flashHost"></div>
+
+        <form id="formFiltros" class="card-tn gr-filtros no-print mb-4">
+            <div class="card-body-tn">
+                <div class="row g-3 align-items-end">
+                    <div class="col-6 col-md-3 col-xl-2">
+                        <label class="form-label small fw-semibold" for="fDesde">Desde</label>
+                        <input type="date" class="form-control" id="fDesde" max="2100-12-31">
+                    </div>
+                    <div class="col-6 col-md-3 col-xl-2">
+                        <label class="form-label small fw-semibold" for="fHasta">Hasta</label>
+                        <input type="date" class="form-control" id="fHasta" max="2100-12-31">
+                    </div>
+                    <div class="col-12 col-md-4 col-xl-3">
+                        <label class="form-label small fw-semibold" for="fHotel">Sede</label>
+                        <select class="form-select" id="fHotel"><option value="0">Todas las sedes</option></select>
+                    </div>
+                    <div class="col-12 col-md-2 col-xl-2 d-grid">
+                        <button type="submit" class="btn btn-tn"><i class="bi bi-funnel me-1"></i>Aplicar</button>
+                    </div>
+                    <div class="col-12 col-xl-3">
+                        <div class="gr-atajos" id="grAtajos"></div>
+                    </div>
+                </div>
+            </div>
+        </form>
+
+        <div id="grCuerpo"><div class="text-center py-5 text-muted">Cargando indicadores gerenciales…</div></div>
+    </main>
+</div>
+
+<script src="/js/bootstrap.bundle.min.js"></script>
+<script src="/js/config.js"></script>
+<script src="/js/api.js"></script>
+<script src="/js/terranova.js"></script>
+<script src="/js/chat-widget.js"></script>
+<script src="/js/layout.js"></script>
+<script>
+(function () {
+    var TABS = ['resumen', 'reservaciones', 'ocupacion', 'rentabilidad', 'tendencias', 'huespedes'];
+    var tabActual = TN.qs('tab');
+    if (TABS.indexOf(tabActual) === -1) { tabActual = 'resumen'; }
+
+    function barraOcup(pct) {
+        var cls = pct >= 75 ? 'gr-alto' : (pct >= 40 ? 'gr-medio' : 'gr-bajo');
+        return '<div class="d-flex align-items-center gap-2"><div class="gr-bar flex-fill ' + cls + '"><span style="width:' + pct + '%"></span></div>'
+            + '<small class="fw-bold gr-pct">' + pct + '%</small></div>';
+    }
+
+    function barrasPeriodo(g) {
+        var serie = g.periodo || [];
+        if (!serie.length) {
+            return '<div class="empty-state py-4"><i class="bi bi-cash-stack"></i>Sin pagos aprobados en el periodo.</div>';
+        }
+        return '<div class="gr-cols-wrap"><div class="gr-cols">' + serie.map(function (p) {
+            var h = p.pctBarra < 3 ? 3 : p.pctBarra;
+            return '<div class="gr-col" title="' + TN.esc(p.etiqueta) + ': ' + TN.money(p.ingresos) + '">'
+                + '<span class="gr-col-bar" style="height:' + h + '%"></span><small>' + TN.esc(p.etiqueta) + '</small></div>';
+        }).join('') + '</div></div>';
+    }
+
+    function bloqueEstados(e) {
+        var pend = (e.pendientes || 0) + (e.pendientePago || 0);
+        var bar = e.total > 0
+            ? '<div class="stack-bar stack-bar-lg">'
+              + '<span class="seg seg-conf" style="width:' + e.pctConfirmadas + '%" title="Confirmadas: ' + e.confirmadas + '"></span>'
+              + '<span class="seg seg-pend" style="width:' + e.pctPendientes + '%" title="Pendientes: ' + pend + '"></span>'
+              + '<span class="seg seg-venc" style="width:' + e.pctVencidas + '%" title="Pago vencido: ' + e.vencidas + '"></span>'
+              + '<span class="seg seg-canc" style="width:' + e.pctCanceladas + '%" title="Canceladas: ' + e.canceladas + '"></span></div>'
+            : '<div class="empty-state py-3">Sin reservaciones registradas en el periodo.</div>';
+        return bar + '<div class="legend mt-3">'
+            + '<div><span class="dot-lg seg-conf"></span>Confirmadas <strong>' + e.confirmadas + '</strong></div>'
+            + '<div><span class="dot-lg seg-pend"></span>Pendientes <strong>' + pend + '</strong></div>'
+            + '<div><span class="dot-lg seg-venc"></span>Pago vencido <strong>' + e.vencidas + '</strong></div>'
+            + '<div><span class="dot-lg seg-canc"></span>Canceladas <strong>' + e.canceladas + '</strong></div></div>';
+    }
+
+    function barrasClave(filas, modo) {
+        if (!filas || !filas.length) { return '<div class="empty-state py-3">Sin datos en el periodo.</div>'; }
+        return filas.map(function (f) {
+            var val = modo === 'monto' ? '<span class="money">' + TN.money0(f.monto) + '</span>'
+                : (modo === 'cantidad' ? '<span><strong>' + f.total + '</strong> reserv.</span>'
+                : '<span><strong>' + f.total + '</strong> · ' + f.pctParte + '%</span>');
+            var pct = modo === 'monto' ? f.pctMonto : (modo === 'cantidad' ? f.pctTotal : f.pctParte);
+            var w = pct < 2 ? 2 : pct;
+            return '<div class="mb-3"><div class="d-flex justify-content-between small"><span class="fw-semibold">' + TN.esc(f.etiqueta) + '</span>' + val + '</div>'
+                + '<div class="gr-bar gr-dorado my-1"><span style="width:' + w + '%"></span></div>'
+                + (modo === 'monto' ? '<div class="small text-muted">' + f.total + ' pagos aprobados</div>' : '') + '</div>';
+        }).join('');
+    }
+
+    function syncSidebar(t) {
+        document.querySelectorAll('#sidebar [data-gr-tab]').forEach(function (a) {
+            a.classList.toggle('active', a.getAttribute('data-gr-tab') === t);
+        });
+    }
+
+    function cargar(params) {
+        var qs = new URLSearchParams();
+        if (params.desde) { qs.set('desde', params.desde); }
+        if (params.hasta) { qs.set('hasta', params.hasta); }
+        if (params.hotel && params.hotel !== '0') { qs.set('hotel', params.hotel); }
+        qs.set('tab', tabActual);
+
+        TN.get('/api/gerente/dashboard?' + qs.toString()).then(function (d) {
+            var g = d.informe;
+            tabActual = d.tab || tabActual;
+            document.getElementById('grHora').textContent = String(d.ahora || '').slice(11, 19);
+            document.getElementById('fDesde').value = d.desde || '';
+            document.getElementById('fHasta').value = d.hasta || '';
+            var sel = document.getElementById('fHotel');
+            sel.innerHTML = '<option value="0">Todas las sedes</option>' + (d.sedes || []).map(function (s) {
+                return '<option value="' + s.idHotel + '"' + (s.idHotel == d.hotelSel ? ' selected' : '') + '>' + TN.esc(s.nombre) + '</option>';
+            }).join('');
+
+            var infQs = new URLSearchParams({ desde: d.desde, hasta: d.hasta, hotel: d.hotelSel || 0 });
+            document.getElementById('btnVerInforme').href = '/gerente/informes?' + infQs.toString();
+
+            var atajos = document.getElementById('grAtajos');
+            atajos.innerHTML = ''
+                + '<a href="#" data-rango="' + d.inicioMes + ',' + d.hoy + '">Este mes</a>'
+                + '<a href="#" data-rango="' + d.hace30 + ',' + d.hoy + '">Últimos 30 días</a>'
+                + '<a href="#" data-rango="' + d.inicioAnio + ',' + d.hoy + '">Año en curso</a>';
+            atajos.querySelectorAll('[data-rango]').forEach(function (a) {
+                a.addEventListener('click', function (ev) {
+                    ev.preventDefault();
+                    var p = a.getAttribute('data-rango').split(',');
+                    cargar({ desde: p[0], hasta: p[1], hotel: sel.value });
+                });
+            });
+
+            var varHtml = g.variacionIngresos != null
+                ? '<div class="small fw-semibold mt-1 ' + (g.variacionIngresos >= 0 ? 'text-success' : 'text-danger') + '">'
+                  + '<i class="bi ' + (g.variacionIngresos >= 0 ? 'bi-arrow-up-right' : 'bi-arrow-down-right') + '"></i> '
+                  + (g.variacionIngresos >= 0 ? '+' : '') + g.variacionIngresos + '% <span class="text-muted fw-normal">vs periodo anterior</span></div>'
+                : '';
+
+            var tabBtn = function (id, ico, lbl) {
+                return '<li class="nav-item"><button class="nav-link' + (tabActual === id ? ' active' : '') + '" data-bs-toggle="pill" data-bs-target="#tab-' + id + '" data-tab="' + id + '" type="button"><i class="bi ' + ico + ' me-1"></i>' + lbl + '</button></li>';
+            };
+
+            var hotelesHtml = !(g.hoteles && g.hoteles.length)
+                ? '<div class="empty-state"><i class="bi bi-building"></i>Sin hoteles.</div>'
+                : '<div class="table-wrap"><div class="table-responsive tn-scroll"><table class="table table-tn table-exec align-middle">'
+                  + '<thead><tr><th>Hotel</th><th style="min-width:150px">Actual</th><th style="min-width:150px">Periodo</th><th class="text-end">Ingresos</th></tr></thead><tbody>'
+                  + g.hoteles.map(function (f) {
+                      return '<tr><td><div class="cell-main">' + TN.esc(f.hotel) + '</div><div class="cell-sub">' + TN.esc(f.ciudad) + ' · ' + f.habitaciones + ' hab.</div></td>'
+                          + '<td>' + barraOcup(f.pctOcupacionActual) + '</td><td>' + barraOcup(f.pctOcupacionHistorica) + '</td>'
+                          + '<td class="text-end"><span class="money">' + TN.money(f.ingresos) + '</span></td></tr>';
+                  }).join('') + '</tbody></table></div></div>';
+
+            var tiposPos = (g.tipos || []).filter(function (t) { return Number(t.ingresos) > 0; }).slice(0, 5);
+            var tiposHtml = Number(g.ingresosTotal) <= 0 || !tiposPos.length
+                ? '<div class="empty-state py-3">Sin ingresos en el periodo.</div>'
+                : tiposPos.map(function (t, i) {
+                    return '<div class="gr-rank"><div class="d-flex justify-content-between"><span class="fw-semibold"><span class="gr-pos">' + (i + 1) + '</span>' + TN.esc(t.tipo) + '</span>'
+                        + '<span class="money">' + TN.money0(t.ingresos) + '</span></div>'
+                        + '<div class="gr-bar gr-dorado my-1"><span style="width:' + t.pctIngreso + '%"></span></div>'
+                        + '<div class="small text-muted">' + t.reservaciones + ' reservaciones · estancia promedio ' + t.promNoches + ' noches · ' + t.pctIngreso + '% del ingreso</div></div>';
+                }).join('');
+
+            document.getElementById('grCuerpo').innerHTML = ''
+                + '<p class="small text-muted mb-3"><i class="bi bi-geo-alt me-1"></i><strong>' + TN.esc(g.hotelNombre) + '</strong> · '
+                + TN.fecha(g.desde) + ' al ' + TN.fecha(g.hasta) + ' (' + g.dias + ' días)</p>'
+                + '<div class="row g-3 mb-4">'
+                + '  <div class="col-6 col-xl-3"><div class="kpi gold"><div class="kpi-icon"><i class="bi bi-cash-coin"></i></div><div class="kpi-label">Ingresos aprobados</div>'
+                + '    <div class="kpi-value money-lg">' + TN.money(g.ingresosTotal) + '</div>'
+                + '    <div class="small text-muted">' + g.pagosAprobados + ' pagos · ticket ' + TN.money0(g.ticketPromedio) + '</div>' + varHtml + '</div></div>'
+                + '  <div class="col-6 col-xl-3"><div class="kpi gold"><div class="kpi-icon"><i class="bi bi-pie-chart-fill"></i></div><div class="kpi-label">Ocupación actual</div>'
+                + '    <div class="kpi-value">' + g.pctOcupacionActual + '<small>%</small></div>'
+                + '    <div class="small text-muted">' + g.ocupadasAhora + ' de ' + g.habitacionesTotal + ' habitaciones hoy</div></div></div>'
+                + '  <div class="col-6 col-xl-3"><div class="kpi gold"><div class="kpi-icon"><i class="bi bi-graph-up-arrow"></i></div><div class="kpi-label">Ocupación del periodo</div>'
+                + '    <div class="kpi-value">' + g.pctOcupacionHistorica + '<small>%</small></div>'
+                + '    <div class="small text-muted">' + g.nochesVendidas + ' noches vendidas de ' + g.nochesDisponibles + '</div></div></div>'
+                + '  <div class="col-6 col-xl-3"><div class="kpi gold"><div class="kpi-icon"><i class="bi bi-moon-stars"></i></div><div class="kpi-label">Estancia promedio</div>'
+                + '    <div class="kpi-value">' + g.promedioEstancia + '<small> noches</small></div>'
+                + '    <div class="small text-muted">por noche vendida ' + TN.money0(g.ingresoPorNoche) + '</div></div></div>'
+                + '</div>'
+                + '<ul class="nav nav-pills gap-1 mb-3 no-print flex-wrap" id="tabsGerente" role="tablist">'
+                + tabBtn('resumen', 'bi-speedometer2', 'Resumen')
+                + tabBtn('reservaciones', 'bi-calendar-check', 'Reservaciones')
+                + tabBtn('ocupacion', 'bi-building', 'Ocupación')
+                + tabBtn('rentabilidad', 'bi-trophy', 'Rentabilidad')
+                + tabBtn('tendencias', 'bi-graph-up', 'Tendencias')
+                + tabBtn('huespedes', 'bi-people', 'Huéspedes y pagos')
+                + '</ul>'
+                + '<div class="tab-content">'
+                + '  <div class="tab-pane fade' + (tabActual === 'resumen' ? ' show active' : '') + '" id="tab-resumen">'
+                + '    <div class="card-tn mb-4"><div class="card-head"><h5><i class="bi bi-bar-chart-fill me-2 gr-ico"></i>Ingresos por ' + TN.esc(g.agrupacion) + '</h5></div><div class="card-body-tn">' + barrasPeriodo(g) + '</div></div>'
+                + '  </div>'
+                + '  <div class="tab-pane fade' + (tabActual === 'reservaciones' ? ' show active' : '') + '" id="tab-reservaciones">'
+                + '    <div class="row g-4 mb-4"><div class="col-lg-7"><div class="card-tn h-100"><div class="card-head"><h5><i class="bi bi-calendar-check me-2 gr-ico"></i>Reservaciones por estado</h5></div>'
+                + '      <div class="card-body-tn">' + bloqueEstados(g.estados) + '<hr>'
+                + '        <div class="folio-row"><span>Registradas en el periodo</span><strong>' + g.estados.total + '</strong></div>'
+                + '        <div class="folio-row"><span>Perdidas (canceladas + pago vencido)</span><strong>' + g.estados.pctPerdidas + '%</strong></div></div></div></div></div>'
+                + '  </div>'
+                + '  <div class="tab-pane fade' + (tabActual === 'ocupacion' ? ' show active' : '') + '" id="tab-ocupacion">'
+                + '    <div class="card-tn mb-4"><div class="card-head"><h5><i class="bi bi-building me-2 gr-ico"></i>Ocupación por hotel</h5></div>' + hotelesHtml + '</div>'
+                + '  </div>'
+                + '  <div class="tab-pane fade' + (tabActual === 'rentabilidad' ? ' show active' : '') + '" id="tab-rentabilidad">'
+                + '    <div class="row g-4 mb-4"><div class="col-lg-8"><div class="card-tn h-100"><div class="card-head"><h5><i class="bi bi-trophy me-2 gr-ico"></i>Tipos más rentables</h5></div><div class="card-body-tn">' + tiposHtml + '</div></div></div></div>'
+                + '  </div>'
+                + '  <div class="tab-pane fade' + (tabActual === 'tendencias' ? ' show active' : '') + '" id="tab-tendencias">'
+                + '    <div class="row g-4 mb-4">'
+                + '      <div class="col-lg-6"><div class="card-tn h-100"><div class="card-head"><h5><i class="bi bi-calendar4-range me-2 gr-ico"></i>Evolución anual de ingresos</h5></div><div class="card-body-tn">'
+                + (g.anioTop ? '<p class="small text-muted">Mejor año: <strong>' + TN.esc(g.anioTop.etiqueta) + '</strong> · todo el historial de la sede seleccionada.</p>' : '')
+                + barrasClave(g.anios, 'monto') + '</div></div></div>'
+                + '      <div class="col-lg-6"><div class="card-tn h-100"><div class="card-head"><h5><i class="bi bi-sun me-2 gr-ico"></i>Temporada: ingresos por mes del año</h5></div><div class="card-body-tn">'
+                + (g.mesTop ? '<p class="small text-muted">Mes más fuerte del periodo: <strong>' + TN.esc(g.mesTop.etiqueta) + '</strong>.</p>' : '')
+                + barrasClave(g.meses, 'monto') + '</div></div></div>'
+                + '    </div>'
+                + '    <div class="card-tn mb-4"><div class="card-head"><h5><i class="bi bi-arrow-left-right me-2 gr-ico"></i>Contra el periodo anterior</h5></div><div class="card-body-tn">'
+                + '      <div class="folio-row"><span>Periodo actual</span><strong>' + TN.fecha(g.desde) + ' – ' + TN.fecha(g.hasta) + '</strong></div>'
+                + '      <div class="folio-row"><span>Periodo anterior (misma duración)</span><strong>' + TN.fecha(g.desdePrevio) + ' – ' + TN.fecha(g.hastaPrevio) + '</strong></div>'
+                + '      <div class="folio-row"><span>Ingresos actuales</span><strong>' + TN.money(g.ingresosTotal) + '</strong></div>'
+                + '      <div class="folio-row"><span>Ingresos del periodo anterior</span><strong>' + TN.money(g.ingresosPrevio) + '</strong></div>'
+                + '      <div class="folio-row"><span>Variación</span><strong>' + (g.variacionIngresos != null ? ((g.variacionIngresos >= 0 ? '+' : '') + g.variacionIngresos + '%') : 'Sin datos para comparar') + '</strong></div>'
+                + '    </div></div>'
+                + '  </div>'
+                + '  <div class="tab-pane fade' + (tabActual === 'huespedes' ? ' show active' : '') + '" id="tab-huespedes">'
+                + '    <div class="row g-4 mb-4">'
+                + '      <div class="col-lg-4"><div class="card-tn h-100"><div class="card-head"><h5><i class="bi bi-geo-alt me-2 gr-ico"></i>¿De dónde vienen?</h5></div><div class="card-body-tn">' + barrasClave(g.procedencia, 'cantidad') + '</div></div></div>'
+                + '      <div class="col-lg-4"><div class="card-tn h-100"><div class="card-head"><h5><i class="bi bi-phone me-2 gr-ico"></i>¿Cómo reservan? (Web vs IA)</h5></div><div class="card-body-tn">' + barrasClave(g.origen, 'parte') + '</div></div></div>'
+                + '      <div class="col-lg-4"><div class="card-tn h-100"><div class="card-head"><h5><i class="bi bi-credit-card me-2 gr-ico"></i>¿Cómo pagan?</h5></div><div class="card-body-tn">' + barrasClave(g.metodos, 'monto') + '</div></div></div>'
+                + '    </div>'
+                + '  </div>'
+                + '</div>';
+
+            document.querySelectorAll('#tabsGerente [data-tab]').forEach(function (b) {
+                b.addEventListener('shown.bs.tab', function () {
+                    tabActual = b.getAttribute('data-tab');
+                    syncSidebar(tabActual);
+                    var u = new URL(location.href); u.searchParams.set('tab', tabActual);
+                    history.replaceState(null, '', u);
+                });
+            });
+            syncSidebar(tabActual);
+            TNUi.bindReveal();
+        }).catch(function (err) {
+            TNLayout.showFlash('error', err.message || 'No se pudo cargar el panel gerencial.');
+            document.getElementById('grCuerpo').innerHTML = '';
+        });
+    }
+
+    document.getElementById('formFiltros').addEventListener('submit', function (e) {
+        e.preventDefault();
+        cargar({
+            desde: document.getElementById('fDesde').value,
+            hasta: document.getElementById('fHasta').value,
+            hotel: document.getElementById('fHotel').value
+        });
+    });
+
+    TNLayout.init({ activo: 'h-ejecutivo', tab: tabActual, roles: ['GERENTE', 'ADMINISTRADOR'] }).then(function () {
+        cargar({ desde: TN.qs('desde'), hasta: TN.qs('hasta'), hotel: TN.qs('hotel') });
+    });
+})();
+</script>
+</body>
+</html>

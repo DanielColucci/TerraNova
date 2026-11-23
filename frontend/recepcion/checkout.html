@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#0b0b0c">
+    <title>Check-out · Hotel TerraNova</title>
+    <link rel="stylesheet" href="/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/css/fonts.css">
+    <link rel="stylesheet" href="/css/icons.css">
+    <link rel="stylesheet" href="/css/terranova.css">
+</head>
+<body>
+<div id="topbarHost"></div>
+<div class="app-shell">
+    <div id="sidebarHost"></div>
+
+    <main class="content">
+        <div class="page-header">
+            <div>
+                <div class="crumbs"><a href="/recepcion/panel">Recepción</a> / Check-out</div>
+                <h1 class="page-title">Check-out</h1>
+                <p class="page-sub">Cierra estancias activas, liquida cargos adicionales y libera habitaciones hacia limpieza.</p>
+            </div>
+        </div>
+
+        <div id="flashHost"></div>
+        <div id="coHost"><div class="text-center py-5 text-muted">Cargando check-outs…</div></div>
+    </main>
+</div>
+
+<script src="/js/bootstrap.bundle.min.js"></script>
+<script src="/js/config.js"></script>
+<script src="/js/api.js"></script>
+<script src="/js/terranova.js"></script>
+<script src="/js/chat-widget.js"></script>
+<script src="/js/layout.js"></script>
+<script>
+(function () {
+    function cargar() {
+        TN.get('/api/recepcion/checkout').then(function (d) {
+            var est = d.estancias || [], enCurso = d.enCurso || [], rec = d.recientes || [], sin = d.sinRegistro || [];
+            var html = '';
+
+            html += '<div class="card-tn mb-4"><div class="card-head"><h5><i class="bi bi-door-open me-2 text-primary"></i>Estancias activas (' + est.length + ')</h5></div>';
+            if (!est.length) {
+                html += '<div class="empty-state py-4">Sin estancias activas por cerrar.</div>';
+            } else {
+                html += '<div class="table-wrap"><table class="table table-tn align-middle"><thead><tr><th>Estancia</th><th>Huésped</th><th>Habitación</th><th>Entrada</th><th>Salida prevista</th><th class="text-end">Acción</th></tr></thead><tbody>'
+                    + est.map(function (e) {
+                        var h = e.habitacion || {};
+                        return '<tr><td class="cell-main">#' + e.idEstancia + '</td><td>' + TN.esc(e.huesped) + '</td>'
+                            + '<td>' + TN.esc(h.hotelNombre) + ' · Hab. ' + TN.esc(h.numero) + '</td>'
+                            + '<td>' + TN.fechaHora(e.fechaEntrada) + '</td><td>' + TN.fecha(e.fechaSalidaPrevista) + '</td>'
+                            + '<td class="text-end"><a href="/recepcion/checkout-form?id=' + e.idEstancia + '" class="btn btn-tn btn-sm">Registrar check-out</a></td></tr>';
+                    }).join('') + '</tbody></table></div>';
+            }
+            html += '</div>';
+
+            if (enCurso.length) {
+                html += '<div class="card-tn mb-4"><div class="card-head"><h5><i class="bi bi-calendar-check me-2 text-primary"></i>Reservaciones en curso (' + enCurso.length + ')</h5></div>'
+                    + '<div class="table-wrap"><table class="table table-tn align-middle"><thead><tr><th>Folio</th><th>Huésped</th><th>Habitación</th><th>Fechas</th><th class="text-end">Total</th><th class="text-end">Acción</th></tr></thead><tbody>'
+                    + enCurso.map(function (r) {
+                        var h = r.habitacion || {};
+                        return '<tr><td class="cell-main">#' + r.idReservacion + '</td><td>' + TN.esc(r.nombreHuesped) + '</td>'
+                            + '<td>' + TN.esc(h.hotelNombre) + ' · Hab. ' + TN.esc(h.numero) + '</td>'
+                            + '<td>' + TN.fecha(r.fechaEntrada) + ' → ' + TN.fecha(r.fechaSalida) + '</td>'
+                            + '<td class="text-end"><span class="money">' + TN.money(r.costoTotal) + '</span></td>'
+                            + '<td class="text-end"><a href="/recepcion/checkout-reservacion?id=' + r.idReservacion + '" class="btn btn-tn btn-sm">Check-out</a></td></tr>';
+                    }).join('') + '</tbody></table></div></div>';
+            }
+
+            if (sin.length) {
+                html += '<div class="card-tn mb-4"><div class="card-head"><h5><i class="bi bi-exclamation-triangle-fill me-2 text-warning"></i>Habitaciones ocupadas sin estancia registrada</h5></div>'
+                    + '<div class="table-wrap"><table class="table table-tn align-middle"><thead><tr><th>Hotel</th><th>Habitación</th><th>Tipo</th><th class="text-end">Acción</th></tr></thead><tbody>'
+                    + sin.map(function (h) {
+                        return '<tr><td>' + TN.esc(h.hotelNombre) + '</td><td class="cell-main">' + TN.esc(h.numero) + '</td><td>' + TN.esc(h.tipoNombre) + '</td>'
+                            + '<td class="text-end"><button type="button" class="btn btn-soft btn-sm" data-reg="' + h.idHabitacion + '">Liberar a limpieza</button></td></tr>';
+                    }).join('') + '</tbody></table></div></div>';
+            }
+
+            html += '<div class="card-tn"><div class="card-head"><h5><i class="bi bi-receipt me-2 text-primary"></i>Check-outs recientes</h5></div>';
+            if (!rec.length) {
+                html += '<div class="empty-state py-4">Aún no hay check-outs registrados.</div>';
+            } else {
+                html += '<div class="table-wrap"><table class="table table-tn align-middle"><thead><tr><th>Folio</th><th>Huésped</th><th>Habitación</th><th>Salida</th><th>Pago</th><th class="text-end">Total</th><th class="text-end">Comprobante</th></tr></thead><tbody>'
+                    + rec.map(function (e) {
+                        var h = e.habitacion || {};
+                        return '<tr><td class="cell-main">#' + e.idEstancia + '</td><td>' + TN.esc(e.huesped) + '</td>'
+                            + '<td>' + TN.esc(h.hotelNombre) + ' · Hab. ' + TN.esc(h.numero) + '</td>'
+                            + '<td>' + TN.fechaHora(e.fechaSalidaReal) + '</td><td>' + TN.esc(e.metodoPago || '—') + '</td>'
+                            + '<td class="text-end"><span class="money">' + TN.money(e.total) + '</span></td>'
+                            + '<td class="text-end"><a href="/recepcion/folio?id=' + e.idEstancia + '" class="btn btn-soft btn-sm">Ver folio</a></td></tr>';
+                    }).join('') + '</tbody></table></div>';
+            }
+            html += '</div>';
+
+            document.getElementById('coHost').innerHTML = html;
+            document.querySelectorAll('[data-reg]').forEach(function (b) {
+                b.addEventListener('click', function () {
+                    TN.post('/api/recepcion/checkout/regularizar/' + b.getAttribute('data-reg'), {}).then(function (r) {
+                        TNLayout.showFlash('exito', r.mensaje); cargar();
+                    }).catch(function (err) { TNLayout.showFlash('aviso', err.message); });
+                });
+            });
+        }).catch(function (err) { TNLayout.showFlash('error', err.message); });
+    }
+
+    TNLayout.init({ activo: 'h-checkout', roles: ['RECEPCIONISTA', 'ADMINISTRADOR'] }).then(cargar);
+})();
+</script>
+</body>
+</html>

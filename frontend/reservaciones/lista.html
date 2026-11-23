@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#0b0b0c">
+    <title>Reservaciones · Hotel TerraNova</title>
+    <link rel="stylesheet" href="/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/css/fonts.css">
+    <link rel="stylesheet" href="/css/icons.css">
+    <link rel="stylesheet" href="/css/terranova.css">
+</head>
+<body>
+<div id="topbarHost"></div>
+<div class="app-shell">
+    <div id="sidebarHost"></div>
+    <main class="content">
+        <div class="page-header">
+            <div>
+                <div class="crumbs">Administración / Reservaciones</div>
+                <h1 class="page-title">Reservaciones</h1>
+                <p class="page-sub">Consulta, edita, cancela o elimina reservaciones de toda la cadena.</p>
+            </div>
+            <a href="/reservaciones/form" class="btn btn-tn"><i class="bi bi-calendar-plus me-1"></i>Nueva reservación</a>
+        </div>
+        <div id="flashHost"></div>
+
+        <div class="filtro-roles" id="tabsVista"></div>
+
+        <form id="formFiltro" class="card-tn mb-4">
+            <div class="card-body-tn d-flex gap-2 flex-wrap align-items-center">
+                <input type="search" id="fQ" class="form-control flex-fill" style="min-width:220px" placeholder="Buscar por folio, huésped, teléfono, hotel o habitación…">
+                <select id="fAnio" class="form-select" style="max-width:160px"><option value="0">Todos los años</option></select>
+                <button type="submit" class="btn btn-tn"><i class="bi bi-search me-1"></i>Filtrar</button>
+            </div>
+        </form>
+
+        <div class="card-tn">
+            <div class="table-wrap"><table class="table table-tn align-middle">
+                <thead><tr><th>Folio</th><th>Huésped</th><th>Hotel / Hab.</th><th>Fechas</th><th>Estado</th><th>Origen</th><th class="text-end">Total</th><th class="text-end">Acciones</th></tr></thead>
+                <tbody id="tbodyRes"><tr><td colspan="8" class="text-center py-4 text-muted">Cargando…</td></tr></tbody>
+            </table></div>
+            <div class="card-body-tn d-flex justify-content-between align-items-center flex-wrap gap-2" id="pagBar"></div>
+        </div>
+    </main>
+</div>
+<script src="/js/bootstrap.bundle.min.js"></script>
+<script src="/js/config.js"></script>
+<script src="/js/api.js"></script>
+<script src="/js/terranova.js"></script>
+<script src="/js/chat-widget.js"></script>
+<script src="/js/layout.js"></script>
+<script>
+(function () {
+    var estado = { vista: TN.qs('vista') || 'proximas', pagina: 0, anio: 0, q: '' };
+    var VISTAS = [
+        { k: 'proximas', l: 'Próximas' },
+        { k: 'activas', l: 'En curso' },
+        { k: 'pasadas', l: 'Pasadas' },
+        { k: 'canceladas', l: 'Canceladas' },
+        { k: 'todas', l: 'Todas' }
+    ];
+
+    function cargar() {
+        var qs = new URLSearchParams({ vista: estado.vista, pagina: estado.pagina, anio: estado.anio, q: estado.q });
+        TN.get('/api/reservaciones?' + qs.toString()).then(function (d) {
+            var c = d.conteos || {};
+            document.getElementById('tabsVista').innerHTML = VISTAS.map(function (v) {
+                return '<a href="#" class="' + (d.vista === v.k ? 'active' : '') + '" data-vista="' + v.k + '">' + v.l
+                    + ' <span class="n">' + (c[v.k] != null ? c[v.k] : 0) + '</span></a>';
+            }).join('');
+            document.querySelectorAll('[data-vista]').forEach(function (a) {
+                a.addEventListener('click', function (ev) {
+                    ev.preventDefault();
+                    estado.vista = a.getAttribute('data-vista');
+                    estado.pagina = 0;
+                    cargar();
+                });
+            });
+
+            var selAnio = document.getElementById('fAnio');
+            selAnio.innerHTML = '<option value="0">Todos los años</option>' + (d.anios || []).map(function (y) {
+                return '<option value="' + y + '"' + (y == d.anio ? ' selected' : '') + '>' + y + '</option>';
+            }).join('');
+
+            var pagadas = new Set(d.pagadas || []);
+            var lista = d.reservaciones || [];
+            var tb = document.getElementById('tbodyRes');
+            if (!lista.length) {
+                tb.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-muted">No hay reservaciones en esta vista.</td></tr>';
+            } else {
+                tb.innerHTML = lista.map(function (r) {
+                    var h = r.habitacion || {};
+                    var pagoTag = pagadas.has(r.idReservacion) ? '<div class="cell-sub text-success"><i class="bi bi-check-circle me-1"></i>Pagado en línea</div>' : '';
+                    var acc = '';
+                    if (r.estado !== 'Cancelada') {
+                        acc += '<a href="/reservaciones/form?id=' + r.idReservacion + '" class="btn-icon edit me-1" title="Editar"><i class="bi bi-pencil"></i></a>';
+                        acc += '<button type="button" class="btn-icon me-1" title="Cancelar" data-canc="' + r.idReservacion + '"><i class="bi bi-x-circle"></i></button>';
+                    }
+                    acc += '<button type="button" class="btn-icon del" title="Eliminar" data-del="' + r.idReservacion + '"><i class="bi bi-trash3"></i></button>';
+                    return '<tr><td class="cell-main">#' + r.idReservacion + '</td>'
+                        + '<td><div class="cell-main">' + TN.esc(r.nombreHuesped) + '</div><div class="cell-sub">' + TN.esc(r.telefono) + '</div></td>'
+                        + '<td>' + TN.esc(h.hotelNombre) + '<div class="cell-sub">Hab. ' + TN.esc(h.numero) + ' · ' + TN.esc(h.tipoNombre) + '</div></td>'
+                        + '<td>' + TN.fecha(r.fechaEntrada) + ' → ' + TN.fecha(r.fechaSalida) + '<div class="cell-sub">' + r.noches + ' n. · ' + r.personas + ' p.</div></td>'
+                        + '<td>' + TN.estadoBadge(r.estado) + pagoTag + '</td>'
+                        + '<td><span class="badge bg-light text-dark border">' + TN.esc(r.origen) + '</span></td>'
+                        + '<td class="text-end"><span class="money">' + TN.money(r.costoTotal) + '</span></td>'
+                        + '<td class="text-end text-nowrap">' + acc + '</td></tr>';
+                }).join('');
+
+                tb.querySelectorAll('[data-canc]').forEach(function (b) {
+                    b.addEventListener('click', function () {
+                        var id = b.getAttribute('data-canc');
+                        if (!confirm('¿Cancelar la reservación #' + id + '?')) { return; }
+                        TN.post('/api/reservaciones/' + id + '/cancelar', {}).then(function (res) {
+                            TNLayout.showFlash('exito', res.mensaje); cargar();
+                        }).catch(function (e) { TNLayout.showFlash('aviso', e.message); });
+                    });
+                });
+                tb.querySelectorAll('[data-del]').forEach(function (b) {
+                    b.addEventListener('click', function () {
+                        var id = b.getAttribute('data-del');
+                        TNLayout.confirmarEliminar({
+                            entidad: 'la reservación', nombre: '#' + id, nota: 'Se eliminará definitivamente.',
+                            onConfirm: function () {
+                                return TN.del('/api/reservaciones/' + id).then(function (res) {
+                                    TNLayout.showFlash('exito', res.mensaje); cargar();
+                                }).catch(function (e) { TNLayout.showFlash('aviso', e.message); });
+                            }
+                        });
+                    });
+                });
+            }
+
+            var bar = document.getElementById('pagBar');
+            bar.innerHTML = '<div class="small text-muted">Total: ' + (d.totalElementos || 0) + ' · Página ' + ((d.pagina || 0) + 1) + ' de ' + Math.max(1, d.totalPaginas || 1) + '</div>'
+                + '<div class="d-flex gap-2">'
+                + '<button type="button" class="btn btn-soft btn-sm" id="btnPrev"' + (d.pagina <= 0 ? ' disabled' : '') + '><i class="bi bi-chevron-left"></i> Anterior</button>'
+                + '<button type="button" class="btn btn-soft btn-sm" id="btnNext"' + (d.pagina + 1 >= d.totalPaginas ? ' disabled' : '') + '>Siguiente <i class="bi bi-chevron-right"></i></button></div>';
+            document.getElementById('btnPrev').addEventListener('click', function () { estado.pagina = Math.max(0, d.pagina - 1); cargar(); });
+            document.getElementById('btnNext').addEventListener('click', function () { estado.pagina = d.pagina + 1; cargar(); });
+        }).catch(function (e) { TNLayout.showFlash('error', e.message); });
+    }
+
+    document.getElementById('formFiltro').addEventListener('submit', function (e) {
+        e.preventDefault();
+        estado.q = document.getElementById('fQ').value.trim();
+        estado.anio = parseInt(document.getElementById('fAnio').value, 10) || 0;
+        estado.pagina = 0;
+        cargar();
+    });
+
+    TNLayout.init({ activo: 'reservaciones', roles: ['ADMINISTRADOR'] }).then(cargar);
+})();
+</script>
+</body>
+</html>
